@@ -1,0 +1,178 @@
+07:57:37 | INFO     | main           | ============================================================
+07:57:37 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+07:57:37 | INFO     | main           |   Instruments : USDCHF
+07:57:37 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+07:57:37 | INFO     | main           | ============================================================
+07:57:37 | INFO     | main           | MT5 connection established.
+07:57:37 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+07:57:37 | INFO     | main           | Buffer optimal delay: {'USDCHF': 22} min per instrument
+07:57:37 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+08:35:35 | INFO     | main           | Signal 2 received — stopping.
+08:35:35 | INFO     | main           | Shutting down bot...
+08:35:35 | INFO     | main           | Bot stopped cleanly.
+08:36:03 | INFO     | main           | ============================================================
+08:36:03 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+08:36:03 | INFO     | main           |   Instruments : USDCHF
+08:36:03 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+08:36:03 | INFO     | main           | ============================================================
+08:36:03 | INFO     | main           | MT5 connection established.
+08:36:03 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+08:36:03 | INFO     | main           | Buffer optimal delay: {'USDCHF': 40} min per instrument
+08:36:03 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+08:36:25 | INFO     | main           | Signal 2 received — stopping.
+08:36:25 | INFO     | main           | Shutting down bot...
+08:36:25 | INFO     | main           | Bot stopped cleanly.
+08:36:36 | INFO     | main           | ============================================================
+08:36:36 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+08:36:36 | INFO     | main           |   Instruments : USDCHF
+08:36:36 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+08:36:36 | INFO     | main           | ============================================================
+08:36:36 | INFO     | main           | MT5 connection established.
+08:36:36 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+08:36:36 | INFO     | main           | Buffer optimal delay: {'USDCHF': 40} min per instrument
+08:36:36 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+09:45:02 | INFO     | main           | Signal 2 received — stopping.
+09:45:03 | INFO     | main           | Shutting down bot...
+09:45:03 | INFO     | main           | Bot stopped cleanly.
+09:45:31 | INFO     | main           | ============================================================
+09:45:31 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+09:45:31 | INFO     | main           |   Instruments : USDCHF
+09:45:31 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+09:45:31 | INFO     | main           | ============================================================
+09:45:32 | INFO     | main           | MT5 connection established.
+09:45:32 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+09:45:32 | INFO     | main           | Buffer optimal delay: {'USDCHF': 40} min per instrument
+09:45:32 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+10:53:06 | INFO     | main           | Signal 2 received — stopping.
+10:53:06 | INFO     | main           | Shutting down bot...
+10:53:06 | INFO     | main           | Bot stopped cleanly.
+13:31:36 | INFO     | main           | ============================================================
+13:31:36 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+13:31:36 | INFO     | main           |   Instruments : USDCHF
+13:31:36 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+13:31:36 | INFO     | main           | ============================================================
+13:31:37 | INFO     | main           | MT5 connection established.
+13:31:37 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+13:31:37 | INFO     | main           | Buffer optimal delay: {'USDCHF': 40} min per instrument
+13:31:37 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+14:34:51 | INFO     | main           | Signal 2 received — stopping.
+14:34:51 | INFO     | main           | Shutting down bot...
+14:34:51 | INFO     | main           | Bot stopped cleanly.
+14:35:48 | INFO     | main           | ============================================================
+14:35:48 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+14:35:48 | INFO     | main           |   Instruments : UK100
+14:35:48 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+14:35:48 | INFO     | main           | ============================================================
+14:35:48 | INFO     | main           | MT5 connection established.
+14:35:49 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+14:35:49 | INFO     | main           | Buffer optimal delay: {'UK100': 14} min per instrument
+14:35:49 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+14:36:04 | INFO     | main           | Signal 2 received — stopping.
+14:36:04 | INFO     | main           | Shutting down bot...
+14:36:04 | INFO     | main           | Bot stopped cleanly.
+14:36:28 | INFO     | main           | ============================================================
+14:36:28 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+14:36:28 | INFO     | main           |   Instruments : US2000
+14:36:28 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+14:36:28 | INFO     | main           | ============================================================
+14:36:28 | INFO     | main           | MT5 connection established.
+14:36:29 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+14:36:29 | INFO     | main           | Buffer optimal delay: {'US2000': 22} min per instrument
+14:36:29 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+14:36:33 | INFO     | main           | Signal 2 received — stopping.
+14:36:33 | INFO     | main           | Shutting down bot...
+14:36:33 | INFO     | main           | Bot stopped cleanly.
+14:37:01 | INFO     | main           | ============================================================
+14:37:01 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+14:37:01 | INFO     | main           |   Instruments : AUS200
+14:37:01 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+14:37:01 | INFO     | main           | ============================================================
+14:37:01 | INFO     | main           | MT5 connection established.
+14:37:02 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+14:37:02 | INFO     | main           | Buffer optimal delay: {'AUS200': 8} min per instrument
+14:37:02 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+14:37:17 | INFO     | main           | Signal 2 received — stopping.
+14:37:17 | INFO     | main           | Shutting down bot...
+14:37:17 | INFO     | main           | Bot stopped cleanly.
+14:37:41 | INFO     | main           | ============================================================
+14:37:41 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+14:37:41 | INFO     | main           |   Instruments : NDAQ
+14:37:41 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+14:37:41 | INFO     | main           | ============================================================
+14:37:41 | INFO     | main           | MT5 connection established.
+14:37:41 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+14:37:41 | INFO     | main           | Buffer optimal delay: {'NDAQ': 16} min per instrument
+14:37:41 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+16:22:56 | INFO     | main           | Signal 2 received — stopping.
+16:22:56 | INFO     | main           | Shutting down bot...
+16:22:56 | INFO     | main           | Bot stopped cleanly.
+16:23:08 | INFO     | main           | ============================================================
+16:23:08 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+16:23:08 | INFO     | main           |   Instruments : NDAQ
+16:23:08 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+16:23:08 | INFO     | main           | ============================================================
+16:23:08 | INFO     | main           | MT5 connection established.
+16:23:08 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+16:23:09 | INFO     | main           | Buffer optimal delay: {'NDAQ': 16} min per instrument
+16:23:09 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+16:38:45 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=71.4% | entry=87.96 SL=87.78198 TP1=88.22704 TP2=88.49407
+16:39:16 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=70.5% | entry=87.96 SL=87.78698 TP1=88.21953 TP2=88.47907
+16:39:46 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=69.9% | entry=87.95 SL=87.77184 TP1=88.21725 TP2=88.48449
+17:01:01 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=70.1% | entry=87.88 SL=87.74276 TP1=88.08586 TP2=88.29172
+17:01:32 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=69.1% | entry=87.92 SL=87.78147 TP1=88.12779 TP2=88.33558
+17:02:03 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=68.3% | entry=87.93 SL=87.79751 TP1=88.12873 TP2=88.32746
+17:13:12 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=93.5% | entry=87.83 SL=87.72146 TP1=87.99281 TP2=88.15563
+17:13:43 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=87.84 SL=87.73407 TP1=87.9989 TP2=88.1578
+17:14:13 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=87.86 SL=87.75407 TP1=88.0189 TP2=88.1778
+17:24:22 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=94.1% | entry=88.04 SL=87.93094 TP1=88.20359 TP2=88.36717
+17:24:52 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=94.1% | entry=88.1 SL=87.99094 TP1=88.26359 TP2=88.42717
+17:25:22 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=94.1% | entry=88.06 SL=87.95094 TP1=88.22359 TP2=88.38717
+17:25:53 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=85.2% | entry=88.07 SL=87.95845 TP1=88.23733 TP2=88.40466
+17:26:23 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=93.4% | entry=88.08 SL=87.97384 TP1=88.23923 TP2=88.39847
+17:26:54 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=95.2% | entry=88.09 SL=87.97099 TP1=88.26852 TP2=88.44704
+17:27:24 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=93.1% | entry=88.06 SL=87.9392 TP1=88.2412 TP2=88.42239
+17:27:55 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=69.2% | entry=88.13 SL=88.00406 TP1=88.31891 TP2=88.50782
+17:28:26 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=69.2% | entry=88.11 SL=87.98406 TP1=88.29891 TP2=88.48782
+17:37:33 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=88.14 SL=88.0067 TP1=88.33994 TP2=88.53989
+17:38:04 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=88.21 SL=88.0767 TP1=88.40994 TP2=88.60989
+17:38:35 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=88.24 SL=88.10337 TP1=88.44495 TP2=88.64989
+17:39:06 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=88.24 SL=88.10208 TP1=88.44688 TP2=88.65375
+17:39:37 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=88.28 SL=88.14208 TP1=88.48688 TP2=88.69375
+17:40:08 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=88.27 SL=88.13679 TP1=88.46981 TP2=88.66963
+17:40:38 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=88.3 SL=88.17245 TP1=88.49133 TP2=88.68265
+17:41:09 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=100.0% | entry=88.3 SL=88.16859 TP1=88.49711 TP2=88.69422
+17:41:39 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=94.0% | entry=88.3 SL=88.17412 TP1=88.48882 TP2=88.67764
+17:42:09 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=94.0% | entry=88.3 SL=88.17412 TP1=88.48882 TP2=88.67764
+17:42:40 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=93.9% | entry=88.29 SL=88.16935 TP1=88.47098 TP2=88.65196
+17:43:11 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=93.0% | entry=88.25 SL=88.1242 TP1=88.43869 TP2=88.62739
+17:52:19 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=93.5% | entry=88.2 SL=88.08589 TP1=88.37116 TP2=88.54233
+17:52:50 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=62.9% | entry=88.24 SL=88.1289 TP1=88.40665 TP2=88.5733
+17:53:22 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=75.9% | entry=88.19 SL=88.08068 TP1=88.35398 TP2=88.51796
+17:53:53 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=75.9% | entry=88.2 SL=88.09068 TP1=88.36398 TP2=88.52796
+20:46:13 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=75.6% | entry=88.2 SL=88.09068 TP1=88.36398 TP2=88.52796
+20:47:28 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=67.3% | entry=88.75 SL=88.64206 TP1=88.91191 TP2=89.07383
+20:47:59 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=74.7% | entry=88.74 SL=88.63077 TP1=88.90384 TP2=89.06769
+20:48:30 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=64.8% | entry=88.72 SL=88.616 TP1=88.876 TP2=89.03199
+20:49:02 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=64.8% | entry=88.71 SL=88.60472 TP1=88.86793 TP2=89.02585
+20:53:37 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=76.6% | entry=88.72 SL=88.61009 TP1=88.88487 TP2=89.04974
+20:54:49 | INFO     | main           | [NDAQ] SIGNAL → LONG | conf=76.9% | entry=88.73 SL=88.6188 TP1=88.8968 TP2=89.0636
+21:35:02 | INFO     | main           | Signal 2 received — stopping.
+21:35:02 | INFO     | main           | Shutting down bot...
+21:35:02 | INFO     | main           | Bot stopped cleanly.
+21:35:37 | INFO     | main           | ============================================================
+21:35:37 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+21:35:37 | INFO     | main           |   Instruments : NDAQ
+21:35:37 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+21:35:37 | INFO     | main           | ============================================================
+22:33:06 | INFO     | main           | ============================================================
+22:33:06 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+22:33:06 | INFO     | main           |   Instruments : NDAQ
+22:33:06 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+22:33:06 | INFO     | main           | ============================================================
+22:33:06 | INFO     | main           | MT5 connection established.
+22:33:06 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+22:33:07 | INFO     | main           | Buffer optimal delay: {'NDAQ': 16} min per instrument
+22:33:07 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+23:37:37 | INFO     | main           | Signal 2 received — stopping.
+23:37:37 | INFO     | main           | Shutting down bot...
+23:37:37 | INFO     | main           | Bot stopped cleanly.

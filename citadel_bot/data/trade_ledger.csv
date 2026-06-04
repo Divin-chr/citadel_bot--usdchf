@@ -1,0 +1,1 @@
+timestamp_utc,event_type,mode,sym,parent_order_id,order_id,direction,qty_delta,qty_open,fill_price,pnl_delta_usd,realized_pnl_usd,status,note

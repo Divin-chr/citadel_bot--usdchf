@@ -1,0 +1,74 @@
+08:24:19 | INFO     | main           | ============================================================
+08:24:19 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+08:24:19 | INFO     | main           |   Instruments : US30, US500, NDAQ
+08:24:19 | INFO     | main           |   MT5 server  :  | login=0
+08:24:19 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+08:24:19 | INFO     | main           | ============================================================
+08:24:20 | INFO     | main           | ✅ Global database manager initialized
+08:24:20 | INFO     | main           | ✅ All database components initialized
+08:24:27 | INFO     | main           | MT5 connection established.
+08:24:27 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+08:24:28 | INFO     | main           | Buffer optimal delay: {'US30': 12, 'US500': 12, 'NDAQ': 12} min per instrument
+08:24:28 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+08:32:46 | INFO     | main           | Signal 2 received — stopping.
+08:32:46 | INFO     | main           | Shutting down bot...
+08:32:46 | INFO     | main           | Database connections closed.
+08:32:46 | INFO     | main           | Bot stopped cleanly.
+08:33:25 | INFO     | main           | ============================================================
+08:33:25 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+08:33:25 | INFO     | main           |   Instruments : US30, US500, NDAQ
+08:33:25 | INFO     | main           |   MT5 server  :  | login=0
+08:33:25 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+08:33:25 | INFO     | main           | ============================================================
+08:33:26 | INFO     | main           | ✅ Global database manager initialized
+08:33:26 | INFO     | main           | ✅ All database components initialized
+08:33:26 | INFO     | main           | MT5 connection established.
+08:33:26 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+08:33:26 | INFO     | main           | Buffer optimal delay: {'US30': 12, 'US500': 34, 'NDAQ': 12} min per instrument
+08:33:26 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+08:36:20 | INFO     | main           | Signal 2 received — stopping.
+08:36:20 | INFO     | main           | Shutting down bot...
+08:36:20 | INFO     | main           | Database connections closed.
+08:36:20 | INFO     | main           | Bot stopped cleanly.
+08:40:18 | INFO     | main           | ============================================================
+08:40:18 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+08:40:18 | INFO     | main           |   Instruments : US30, US500, NDAQ, BTCUSD, ETHUSD
+08:40:18 | INFO     | main           |   MT5 server  :  | login=0
+08:40:18 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+08:40:18 | INFO     | main           | ============================================================
+08:40:18 | INFO     | main           | ✅ Global database manager initialized
+08:40:18 | INFO     | main           | ✅ All database components initialized
+08:40:18 | INFO     | main           | MT5 connection established.
+08:40:18 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+08:58:35 | INFO     | main           | ============================================================
+08:58:35 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+08:58:35 | INFO     | main           |   Instruments : US30, US500, NDAQ, BTCUSD, ETHUSD
+08:58:35 | INFO     | main           |   MT5 server  :  | login=0
+08:58:35 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+08:58:35 | INFO     | main           | ============================================================
+08:58:35 | INFO     | main           | ✅ Global database manager initialized
+08:58:35 | INFO     | main           | ✅ All database components initialized
+08:58:35 | INFO     | main           | MT5 connection established.
+08:58:35 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+08:58:36 | INFO     | main           | Buffer optimal delay: {'US30': 12, 'US500': 34, 'NDAQ': 12, 'BTCUSD': 12, 'ETHUSD': 12} min per instrument
+08:58:36 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+09:00:23 | INFO     | main           | Signal 2 received — stopping.
+09:00:23 | INFO     | main           | Shutting down bot...
+09:00:23 | INFO     | main           | Database connections closed.
+09:00:23 | INFO     | main           | Bot stopped cleanly.
+10:00:04 | INFO     | main           | ============================================================
+10:00:04 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+10:00:04 | INFO     | main           |   Instruments : US30, US500, NDAQ, BTCUSD, ETHUSD
+10:00:04 | INFO     | main           |   MT5 server  :  | login=0
+10:00:04 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+10:00:04 | INFO     | main           | ============================================================
+10:00:04 | INFO     | main           | [SUCCESS] Global database manager initialized
+10:00:04 | INFO     | main           | [SUCCESS] All database components initialized
+10:00:04 | INFO     | main           | MT5 connection established.
+10:00:05 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+10:00:05 | INFO     | main           | Buffer optimal delay: {'US30': 12, 'US500': 34, 'NDAQ': 12, 'BTCUSD': 12, 'ETHUSD': 12} min per instrument
+10:00:05 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+10:00:36 | INFO     | main           | Signal 2 received — stopping.
+10:00:36 | INFO     | main           | Shutting down bot...
+10:00:36 | INFO     | main           | Database connections closed.
+10:00:36 | INFO     | main           | Bot stopped cleanly.

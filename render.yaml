@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: citadel-bot
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m citadel_bot.main"

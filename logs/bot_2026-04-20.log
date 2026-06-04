@@ -1,0 +1,85 @@
+08:19:16 | INFO     | main           | ============================================================
+08:19:16 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+08:19:16 | INFO     | main           |   Instruments : NDAQ
+08:19:16 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+08:19:16 | INFO     | main           | ============================================================
+08:19:52 | INFO     | main           | MT5 connection established.
+08:19:52 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+08:19:52 | INFO     | main           | Buffer optimal delay: {'NDAQ': 10} min per instrument
+08:19:52 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+09:03:13 | INFO     | main           | ============================================================
+09:03:13 | INFO     | main           |   CITADEL QUANT BOT  |  v2.1  |  PAPER MODE
+09:03:13 | INFO     | main           |   Instruments : NDAQ
+09:03:13 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+09:03:13 | INFO     | main           | ============================================================
+09:03:13 | INFO     | main           | MT5 connection established.
+09:03:13 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+09:03:13 | INFO     | main           | Buffer optimal delay: {'NDAQ': 10} min per instrument
+09:03:13 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+10:08:24 | INFO     | main           | Signal 2 received — stopping.
+10:08:24 | INFO     | main           | Shutting down bot...
+10:08:24 | INFO     | main           | Bot stopped cleanly.
+10:16:26 | INFO     | main           | ============================================================
+10:16:26 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+10:16:26 | INFO     | main           |   Instruments : NDAQ
+10:16:26 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+10:16:26 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True
+10:16:26 | INFO     | main           | ============================================================
+10:16:26 | INFO     | main           | MT5 connection established.
+10:16:26 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+10:16:26 | INFO     | main           | Buffer optimal delay: {'NDAQ': 10} min per instrument
+10:16:26 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+10:21:29 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=69.3% | entry=88.61 SL=88.72689 TP1=88.43466 TP2=88.25933
+10:21:29 | WARNING  | main           | [NDAQ] Signal rejected by risk manager.
+10:36:39 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=69.3% | entry=88.61 SL=88.72689 TP1=88.43466 TP2=88.25933
+10:36:39 | WARNING  | main           | [NDAQ] Signal rejected by risk manager.
+10:52:00 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=69.3% | entry=88.61 SL=88.72689 TP1=88.43466 TP2=88.25933
+10:52:00 | WARNING  | main           | [NDAQ] Signal rejected by risk manager.
+11:07:23 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=69.3% | entry=88.61 SL=88.72689 TP1=88.43466 TP2=88.25933
+11:07:23 | WARNING  | main           | [NDAQ] Signal rejected by risk manager.
+11:22:43 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=69.3% | entry=88.61 SL=88.72689 TP1=88.43466 TP2=88.25933
+11:22:43 | WARNING  | main           | [NDAQ] Signal rejected by risk manager.
+11:38:04 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=69.3% | entry=88.61 SL=88.72689 TP1=88.43466 TP2=88.25933
+11:38:04 | WARNING  | main           | [NDAQ] Signal rejected by risk manager.
+15:23:01 | INFO     | main           | ============================================================
+15:23:01 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+15:23:01 | INFO     | main           |   Instruments : NDAQ
+15:23:01 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+15:23:01 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True
+15:23:01 | INFO     | main           | ============================================================
+15:23:11 | INFO     | main           | MT5 connection established.
+15:23:11 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+15:23:11 | INFO     | main           | Buffer optimal delay: {'NDAQ': 10} min per instrument
+15:23:11 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+15:28:12 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=69.3% | entry=88.61 SL=88.72689 TP1=88.43466 TP2=88.25933
+15:28:12 | WARNING  | main           | [NDAQ] Signal rejected by risk manager.
+15:43:27 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=69.3% | entry=88.61 SL=88.72689 TP1=88.43466 TP2=88.25933
+15:58:38 | INFO     | main           | Signal 2 received — stopping.
+15:58:38 | INFO     | main           | Shutting down bot...
+15:58:38 | INFO     | main           | Bot stopped cleanly.
+15:58:46 | INFO     | main           | ============================================================
+15:58:46 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+15:58:46 | INFO     | main           |   Instruments : NDAQ
+15:58:46 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+15:58:46 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True
+15:58:46 | INFO     | main           | ============================================================
+15:58:46 | INFO     | main           | MT5 connection established.
+15:58:46 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+15:58:46 | INFO     | main           | Buffer optimal delay: {'NDAQ': 10} min per instrument
+15:58:46 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+16:14:47 | INFO     | main           | Signal 2 received — stopping.
+16:14:47 | INFO     | main           | Shutting down bot...
+16:14:47 | INFO     | main           | Bot stopped cleanly.
+16:14:59 | INFO     | main           | ============================================================
+16:14:59 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+16:14:59 | INFO     | main           |   Instruments : NDAQ
+16:14:59 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+16:14:59 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True
+16:14:59 | INFO     | main           | ============================================================
+16:14:59 | INFO     | main           | MT5 connection established.
+16:14:59 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+16:15:00 | INFO     | main           | Buffer optimal delay: {'NDAQ': 10} min per instrument
+16:15:00 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+11:54:46 | INFO     | main           | Signal 2 received — stopping.
+11:54:46 | INFO     | main           | Shutting down bot...
+11:54:46 | INFO     | main           | Bot stopped cleanly.

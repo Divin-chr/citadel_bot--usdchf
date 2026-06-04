@@ -1,0 +1,81 @@
+08:29:29 | INFO     | main           | ============================================================
+08:29:29 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+08:29:29 | INFO     | main           |   Instruments : NDAQ
+08:29:29 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+08:29:29 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True
+08:29:29 | INFO     | main           | ============================================================
+08:29:29 | INFO     | main           | MT5 connection established.
+08:29:30 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+08:29:30 | INFO     | main           | Buffer optimal delay: {'NDAQ': 6} min per instrument
+08:29:30 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+08:54:20 | INFO     | main           | Signal 2 received — stopping.
+08:54:20 | INFO     | main           | Shutting down bot...
+08:54:20 | INFO     | main           | Bot stopped cleanly.
+09:36:57 | INFO     | main           | ============================================================
+09:36:57 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+09:36:57 | INFO     | main           |   Instruments : NDAQ
+09:36:57 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+09:36:57 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True
+09:36:57 | INFO     | main           | ============================================================
+09:36:57 | INFO     | main           | MT5 connection established.
+09:36:57 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+09:36:58 | INFO     | main           | Buffer optimal delay: {'NDAQ': 6} min per instrument
+09:36:58 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+19:21:33 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=68.5% | entry=87.01 SL=87.18042 TP1=86.75438 TP2=86.49875
+19:21:33 | ERROR    | main           | Main loop error: 'RiskManager' object has no attribute '_today_macro_events_utc'
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\main.py", line 99, in _main_loop
+    # Initialize component-specific database connections
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\main.py", line 169, in _process_instrument
+    rejection_gate = "DELTA_NOT_ALIGNED"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\risk_manager.py", line 69, in approve
+    if not self._check_macro_calendar():
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\risk_manager.py", line 186, in _check_macro_calendar
+    for event_dt, label in self._today_macro_events_utc(now):
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'RiskManager' object has no attribute '_today_macro_events_utc'
+19:27:07 | INFO     | main           | ============================================================
+19:27:07 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+19:27:07 | INFO     | main           |   Instruments : NDAQ
+19:27:07 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
+19:27:07 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+19:27:07 | INFO     | main           | ============================================================
+19:27:08 | WARNING  | main           | ⚠️  Database initialization failed, continuing with CSV fallbacks: password authentication failed for user "postgres"
+19:27:08 | INFO     | main           | MT5 connection established.
+19:27:08 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+19:27:08 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+19:27:08 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+19:58:32 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=62.7% | entry=86.4 SL=86.55034 TP1=86.17449 TP2=85.94898
+19:58:32 | ERROR    | main           | Main loop error: 'RiskManager' object has no attribute '_today_macro_events_utc'
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\main.py", line 99, in _main_loop
+    # Initialize component-specific database connections
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\main.py", line 169, in _process_instrument
+    rejection_gate = "DELTA_NOT_ALIGNED"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\risk_manager.py", line 69, in approve
+    if not self._check_macro_calendar():
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\risk_manager.py", line 186, in _check_macro_calendar
+    for event_dt, label in self._today_macro_events_utc(now):
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'RiskManager' object has no attribute '_today_macro_events_utc'
+20:01:22 | INFO     | main           | [NDAQ] SIGNAL → SHORT | conf=62.9% | entry=86.29 SL=86.43005 TP1=86.07992 TP2=85.86984
+20:01:22 | ERROR    | main           | Main loop error: 'RiskManager' object has no attribute '_today_macro_events_utc'
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\main.py", line 124, in _main_loop
+    await asyncio.gather(*tasks)
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\main.py", line 194, in _process_instrument
+    approved = self.risk.approve(signal_out, self.executor.get_account_value())
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\risk_manager.py", line 69, in approve
+    if not self._check_macro_calendar():
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\user\Desktop\citadel_bot - 2.0\risk_manager.py", line 186, in _check_macro_calendar
+    for event_dt, label in self._today_macro_events_utc(now):
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'RiskManager' object has no attribute '_today_macro_events_utc'
+12:12:57 | INFO     | main           | Signal 2 received — stopping.
+12:12:57 | INFO     | main           | Shutting down bot...
+12:12:57 | INFO     | main           | Bot stopped cleanly.

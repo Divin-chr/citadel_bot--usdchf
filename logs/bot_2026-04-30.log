@@ -1,0 +1,14 @@
+10:48:37 | INFO     | dashboard_service | [SUCCESS] MT5 connection initialized
+10:49:36 | INFO     | dashboard      | Bot started from dashboard
+10:49:37 | INFO     | main           | ============================================================
+10:49:37 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+10:49:37 | INFO     | main           |   Instruments : NDAQ
+10:49:37 | INFO     | main           |   MT5 server  :  | login=0
+10:49:37 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+10:49:37 | INFO     | main           | ============================================================
+10:49:38 | INFO     | main           | [SUCCESS] Global database manager initialized
+10:49:38 | INFO     | main           | [SUCCESS] All database components initialized
+10:49:38 | INFO     | main           | MT5 connection established.
+10:49:39 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+10:49:41 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+10:49:41 | INFO     | main           | Bot running. Press Ctrl+C to stop.

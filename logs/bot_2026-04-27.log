@@ -1,0 +1,148 @@
+08:56:41 | INFO     | dashboard      | Configuration saved successfully
+08:56:58 | INFO     | dashboard      | Bot started from dashboard
+09:39:52 | INFO     | dashboard_service | ✅ MT5 connection initialized
+09:39:52 | INFO     | dashboard_service | ✅ Database connection ready
+09:40:36 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:40:36 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:40:36 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:40:36 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:41:10 | INFO     | dashboard      | Bot started from dashboard
+09:41:10 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:41:10 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:41:10 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:41:10 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:41:10 | INFO     | main           | ============================================================
+09:41:10 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+09:41:10 | INFO     | main           |   Instruments : NDAQ
+09:41:10 | INFO     | main           |   MT5 server  :  | login=0
+09:41:10 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+09:41:10 | INFO     | main           | ============================================================
+09:41:11 | INFO     | main           | ✅ Global database manager initialized
+09:41:11 | INFO     | main           | ✅ All database components initialized
+09:41:11 | INFO     | main           | MT5 connection established.
+09:41:11 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+09:41:12 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+09:41:12 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+09:41:27 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:41:27 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:41:27 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:41:27 | ERROR    | dashboard_service | Error getting account info: 'AccountInfo' object has no attribute 'margin_used'
+09:53:08 | INFO     | dashboard_service | [SUCCESS] MT5 connection initialized
+09:53:08 | INFO     | dashboard_service | [SUCCESS] Database connection ready
+09:53:52 | INFO     | dashboard      | Bot started from dashboard
+09:53:52 | INFO     | main           | ============================================================
+09:53:52 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+09:53:52 | INFO     | main           |   Instruments : NDAQ
+09:53:52 | INFO     | main           |   MT5 server  :  | login=0
+09:53:52 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+09:53:52 | INFO     | main           | ============================================================
+09:53:53 | INFO     | main           | [SUCCESS] Global database manager initialized
+09:53:53 | INFO     | main           | [SUCCESS] All database components initialized
+09:53:53 | INFO     | main           | MT5 connection established.
+09:53:53 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+09:53:54 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+09:53:54 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+10:03:53 | ERROR    | dashboard_service | Error getting signal stats: Database pool not initialized
+10:03:53 | ERROR    | dashboard_service | Error getting trade stats: Database pool not initialized
+10:03:53 | ERROR    | dashboard_service | Error fetching signals: Database pool not initialized
+10:03:53 | ERROR    | dashboard_service | Error fetching trades: Database pool not initialized
+10:04:08 | ERROR    | dashboard_service | Error getting signal stats: Database pool not initialized
+10:04:08 | ERROR    | dashboard_service | Error getting trade stats: Database pool not initialized
+10:04:08 | ERROR    | dashboard_service | Error getting instrument performance: Database pool not initialized
+10:24:27 | INFO     | dashboard_service | [SUCCESS] MT5 connection initialized
+10:24:27 | INFO     | dashboard_service | [SUCCESS] Database connection ready
+10:24:47 | INFO     | dashboard      | Bot started from dashboard
+10:24:47 | INFO     | main           | ============================================================
+10:24:47 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+10:24:47 | INFO     | main           |   Instruments : NDAQ
+10:24:47 | INFO     | main           |   MT5 server  :  | login=0
+10:24:47 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+10:24:47 | INFO     | main           | ============================================================
+10:24:48 | INFO     | main           | [SUCCESS] Global database manager initialized
+10:24:48 | INFO     | main           | [SUCCESS] All database components initialized
+10:24:48 | INFO     | main           | MT5 connection established.
+10:24:48 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+10:24:49 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+10:24:49 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+10:27:21 | INFO     | dashboard_service | [SUCCESS] MT5 connection initialized
+10:27:21 | INFO     | dashboard_service | [SUCCESS] Database connection ready
+10:27:40 | INFO     | dashboard      | Bot started from dashboard
+10:27:40 | INFO     | main           | ============================================================
+10:27:40 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+10:27:40 | INFO     | main           |   Instruments : NDAQ
+10:27:40 | INFO     | main           |   MT5 server  :  | login=0
+10:27:40 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+10:27:40 | INFO     | main           | ============================================================
+10:27:41 | INFO     | main           | [SUCCESS] Global database manager initialized
+10:27:41 | INFO     | main           | [SUCCESS] All database components initialized
+10:27:41 | INFO     | main           | MT5 connection established.
+10:27:41 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+10:27:42 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+10:27:42 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+10:56:45 | INFO     | dashboard_service | [SUCCESS] MT5 connection initialized
+10:56:45 | INFO     | dashboard_service | [SUCCESS] Database connection ready
+10:57:46 | INFO     | dashboard      | Bot started from dashboard
+10:57:46 | INFO     | main           | ============================================================
+10:57:46 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+10:57:46 | INFO     | main           |   Instruments : NDAQ
+10:57:46 | INFO     | main           |   MT5 server  :  | login=0
+10:57:46 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+10:57:46 | INFO     | main           | ============================================================
+10:57:47 | INFO     | main           | [SUCCESS] Global database manager initialized
+10:57:47 | INFO     | main           | [SUCCESS] All database components initialized
+10:57:47 | INFO     | main           | MT5 connection established.
+10:57:48 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+10:57:49 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+10:57:49 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+11:03:12 | INFO     | dashboard_service | [SUCCESS] MT5 connection initialized
+11:03:12 | INFO     | dashboard_service | [SUCCESS] Database connection ready
+11:03:34 | INFO     | dashboard      | Bot started from dashboard
+11:03:34 | INFO     | main           | ============================================================
+11:03:34 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+11:03:34 | INFO     | main           |   Instruments : NDAQ
+11:03:34 | INFO     | main           |   MT5 server  :  | login=0
+11:03:34 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+11:03:34 | INFO     | main           | ============================================================
+11:03:35 | INFO     | main           | [SUCCESS] Global database manager initialized
+11:03:35 | INFO     | main           | [SUCCESS] All database components initialized
+11:03:35 | INFO     | main           | MT5 connection established.
+11:03:35 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+11:03:36 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+11:03:36 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+11:20:55 | ERROR    | dashboard_service | Error getting signal stats: Database pool not initialized
+11:20:55 | ERROR    | dashboard_service | Error getting trade stats: Database pool not initialized
+11:20:55 | ERROR    | dashboard_service | Error fetching signals: Database pool not initialized
+11:20:55 | ERROR    | dashboard_service | Error fetching trades: Database pool not initialized
+11:23:23 | INFO     | dashboard_service | [SUCCESS] MT5 connection initialized
+11:23:23 | INFO     | dashboard_service | [SUCCESS] Database connection ready
+11:23:48 | INFO     | dashboard      | Bot started from dashboard
+11:23:49 | INFO     | main           | ============================================================
+11:23:49 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+11:23:49 | INFO     | main           |   Instruments : NDAQ
+11:23:49 | INFO     | main           |   MT5 server  :  | login=0
+11:23:49 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+11:23:49 | INFO     | main           | ============================================================
+11:23:49 | INFO     | main           | [SUCCESS] Global database manager initialized
+11:23:49 | INFO     | main           | [SUCCESS] All database components initialized
+11:23:49 | INFO     | main           | MT5 connection established.
+11:23:50 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+11:23:50 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+11:23:50 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+11:27:28 | ERROR    | dashboard_service | Error getting signal stats: Database pool not initialized
+11:27:28 | ERROR    | dashboard_service | Error getting trade stats: Database pool not initialized
+11:27:28 | ERROR    | dashboard_service | Error fetching signals: Database pool not initialized
+11:27:28 | ERROR    | dashboard_service | Error fetching trades: Database pool not initialized
+12:01:31 | INFO     | dashboard_service | [SUCCESS] MT5 connection initialized
+12:01:52 | INFO     | dashboard      | Bot started from dashboard
+12:01:53 | INFO     | main           | ============================================================
+12:01:53 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
+12:01:53 | INFO     | main           |   Instruments : NDAQ
+12:01:53 | INFO     | main           |   MT5 server  :  | login=0
+12:01:53 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+12:01:53 | INFO     | main           | ============================================================
+12:01:54 | INFO     | main           | [SUCCESS] Global database manager initialized
+12:01:54 | INFO     | main           | [SUCCESS] All database components initialized
+12:01:54 | INFO     | main           | MT5 connection established.
+12:01:55 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+12:01:57 | INFO     | main           | Buffer optimal delay: {'NDAQ': 12} min per instrument
+12:01:57 | INFO     | main           | Bot running. Press Ctrl+C to stop.
