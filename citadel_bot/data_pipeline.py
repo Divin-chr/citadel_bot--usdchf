@@ -15,6 +15,14 @@ from citadel_bot.database.database_manager import db_manager
 
 log = logging.getLogger("pipeline")
 
+SUPPORTED_TIMEFRAMES = [
+    ("1m", "m1"),
+    ("5m", "m5"),
+    ("1h", "h1"),
+    ("1d", "d1"),
+    ("1w", "w1"),
+]
+
 
 class DataPipeline:
     """
@@ -137,33 +145,63 @@ class DataPipeline:
     async def _refresh_symbol(self, sym: str):
         try:
             from datetime import datetime, timedelta
-            end_time = datetime.utcnow()
-            start_time = end_time - timedelta(minutes=self.config.history_bars)
-            candles = await self.account.get_historical_candles(sym, '1m', start_time, self.config.history_bars)
-            if sym in {"NDAQ", "US500"}:
-                try:
-                    log.warning("[PIPELINE-REFRESH] %s get_historical_candles returned %s", sym, 'None' if candles is None else len(candles))
-                except Exception:
-                    pass
-            if candles is None or len(candles) == 0:
-                return
 
-            df = pd.DataFrame(candles)
-            if df.empty:
-                return
-            df["datetime"] = pd.to_datetime(df["time"], unit="s", utc=True).dt.floor("min")
-            df = df.set_index("datetime").sort_index()
-            df = df.rename(columns={"tickVolume": "volume"}) if "tickVolume" in df else df
-            for col in ["open", "high", "low", "close", "volume"]:
-                if col not in df.columns:
-                    df[col] = 0.0
-            df = df[["open", "high", "low", "close", "volume"]].astype(float)
-            df = self._normalize_index(df)
-            self._persist_symbol_data(sym, df)
-            merged = self._persisted_m1.get(sym, df)
-            self._bars[sym] = merged.tail(self._analysis_window_bars)
+            end_time = datetime.utcnow()
+            fetched_any = False
+
+            for metaapi_timeframe, db_timeframe in SUPPORTED_TIMEFRAMES:
+                start_time = self._timeframe_start_time(end_time, metaapi_timeframe)
+                candles = await self.account.get_historical_candles(
+                    sym,
+                    metaapi_timeframe,
+                    start_time,
+                    self.config.history_bars,
+                )
+                if candles is None or len(candles) == 0:
+                    continue
+
+                fetched_any = True
+                df = self._candles_to_dataframe(candles)
+                if df.empty:
+                    continue
+
+                self._persist_symbol_data(sym, df, db_timeframe)
+
+            if fetched_any:
+                merged = self._persisted_m1.get(sym)
+                if merged is not None and not merged.empty:
+                    self._bars[sym] = merged.tail(self._analysis_window_bars)
+                else:
+                    self._bars[sym] = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
         except Exception as exc:
             log.error("[%s] MetaApi refresh error: %s", sym, exc)
+
+    def _timeframe_start_time(self, end_time, metaapi_timeframe: str):
+        from datetime import timedelta
+
+        if metaapi_timeframe in ("1m", "5m"):
+            minutes = self.config.history_bars * (5 if metaapi_timeframe == "5m" else 1)
+            return end_time - timedelta(minutes=minutes)
+        if metaapi_timeframe == "1h":
+            return end_time - timedelta(hours=self.config.history_bars)
+        if metaapi_timeframe == "1d":
+            return end_time - timedelta(days=self.config.history_bars)
+        return end_time - timedelta(weeks=self.config.history_bars)
+
+    def _candles_to_dataframe(self, candles) -> pd.DataFrame:
+        df = pd.DataFrame(candles)
+        if df.empty:
+            return df
+
+        df["datetime"] = pd.to_datetime(df["time"], unit="s", utc=True).dt.floor("min")
+        df = df.set_index("datetime").sort_index()
+        df = df.rename(columns={"tickVolume": "volume"}) if "tickVolume" in df else df
+
+        for col in ["open", "high", "low", "close", "volume"]:
+            if col not in df.columns:
+                df[col] = 0.0
+
+        return self._normalize_index(df[["open", "high", "low", "close", "volume"]].astype(float))
 
     def _normalize_index(self, df: pd.DataFrame) -> pd.DataFrame:
         """Normalize index to UTC minute boundaries for alignment and storage."""
@@ -184,70 +222,43 @@ class DataPipeline:
         df = df[~df.index.isna()]
         return df.sort_index()
 
-    def _persist_symbol_data(self, sym: str, new_m1: pd.DataFrame):
+    def _persist_symbol_data(self, sym: str, new_df: pd.DataFrame, timeframe: str):
         """
-        Persist all received 1-minute bars to both CSV (fallback) and database (primary):
-          - {sym}_m1.csv (fallback)
-          - PostgreSQL market_data table (primary)
-          - Aggregated CSV files (h1, d1, w1) for compatibility
+        Persist candles for a specific timeframe to both CSV and database.
         """
-        new_m1 = self._normalize_index(new_m1)
-        m1_path = self._data_dir / f"{sym}_m1.csv"
+        new_df = self._normalize_index(new_df)
+        csv_path = self._data_dir / f"{sym}_{timeframe}.csv"
+
         if sym not in self._persisted_m1:
-            if m1_path.exists():
-                try:
-                    hist = pd.read_csv(m1_path, index_col=0, parse_dates=True)
-                    hist = self._normalize_index(hist)
-                    hist = hist[["open", "high", "low", "close", "volume"]].astype(float)
-                except Exception:
-                    hist = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
-            else:
-                hist = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
-            self._persisted_m1[sym] = hist
+            self._persisted_m1[sym] = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
 
-        # Filter new_m1 to only include recent rows to avoid massive DB writes on every tick
-        if not self._persisted_m1[sym].empty:
-            last_dt = self._persisted_m1[sym].index[-1] - pd.Timedelta(minutes=5)
-            new_m1_filtered = new_m1[new_m1.index >= last_dt]
+        persisted = self._load_persisted_frame(sym, timeframe)
+        if persisted is None or persisted.empty:
+            persisted = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
+
+        if not persisted.empty:
+            last_dt = persisted.index[-1] - pd.Timedelta(minutes=5 if timeframe == "m1" else 1)
+            new_filtered = new_df[new_df.index >= last_dt]
         else:
-            new_m1_filtered = new_m1
+            new_filtered = new_df
 
-        merged = pd.concat([self._persisted_m1[sym], new_m1])
+        merged = pd.concat([persisted, new_df])
         merged = self._normalize_index(merged)
         merged = merged[~merged.index.duplicated(keep="last")].sort_index()
-        
-        # Limit memory usage (prevent unbounded growth)
         merged = merged.tail(self._analysis_window_bars)
-        self._persisted_m1[sym] = merged
 
-        # Save to CSV (fallback)
-        merged.to_csv(m1_path, date_format="%Y-%m-%dT%H:%M:%SZ")
+        merged.to_csv(csv_path, date_format="%Y-%m-%dT%H:%M:%SZ")
 
-        # Save to database (primary) - run in background to avoid blocking
-        if self._db_available and not new_m1_filtered.empty:
-            if sym in {"NDAQ", "US500"}:
-                log.warning(
-                    "[DB-PERSIST-CHECK] %s _db_available=%s new_m1=%d new_m1_filtered=%d last_persisted_dt=%s metaapi_account_id=%r",
-                    sym,
-                    self._db_available,
-                    len(new_m1),
-                    len(new_m1_filtered),
-                    str(self._persisted_m1[sym].index[-1]) if not self._persisted_m1[sym].empty else None,
-                    self.config.metaapi_account_id,
-                )
+        if timeframe == "m1":
+            self._persisted_m1[sym] = merged
+
+        if self._db_available and not new_filtered.empty:
             self._create_background_task(
-                lambda sym=sym, df=new_m1_filtered: self._persist_to_database(sym, df),
-                f"persist_market_data_{sym}"
+                lambda sym=sym, df=new_filtered, tf=timeframe: self._persist_to_database(sym, df, tf),
+                f"persist_market_data_{sym}_{timeframe}"
             )
 
-
-        # Maintain aggregated CSV files for compatibility
-        agg_map = {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}
-        for rule, suffix in [("1h", "h1"), ("1D", "d1"), ("1W", "w1")]:
-            agg = merged.resample(rule).agg(agg_map).dropna()
-            agg.to_csv(self._data_dir / f"{sym}_{suffix}.csv")
-
-    async def _persist_to_database(self, sym: str, df: pd.DataFrame):
+    async def _persist_to_database(self, sym: str, df: pd.DataFrame, timeframe: str):
         """Persist market data to database asynchronously"""
         try:
             instrument_id = await db_manager.get_instrument_id(sym)
@@ -259,7 +270,7 @@ class DataPipeline:
             for timestamp, row in df.iterrows():
                 await db_manager.insert_market_data(
                     instrument_id=instrument_id,
-                    timeframe='m1',
+                    timeframe=timeframe,
                     timestamp_utc=timestamp.to_pydatetime(),
                     open_price=float(row['open']),
                     high_price=float(row['high']),
@@ -291,12 +302,12 @@ class DataPipeline:
 
         asyncio.create_task(_task_wrapper())
 
-    def _load_persisted_m1(self, sym: str) -> Optional[pd.DataFrame]:
-        m1_path = self._data_dir / f"{sym}_m1.csv"
-        if not m1_path.exists():
+    def _load_persisted_frame(self, sym: str, timeframe: str) -> Optional[pd.DataFrame]:
+        path = self._data_dir / f"{sym}_{timeframe}.csv"
+        if not path.exists():
             return None
         try:
-            df = pd.read_csv(m1_path, index_col=0, parse_dates=True)
+            df = pd.read_csv(path, index_col=0, parse_dates=True)
             if df.empty:
                 return None
             df = self._normalize_index(df)
@@ -305,5 +316,8 @@ class DataPipeline:
                     df[col] = 0.0
             return df[["open", "high", "low", "close", "volume"]].astype(float)
         except Exception as exc:
-            log.warning("[%s] Could not load persisted m1 CSV: %s", sym, exc)
+            log.warning("[%s] Could not load persisted %s CSV: %s", sym, timeframe, exc)
             return None
+
+    def _load_persisted_m1(self, sym: str) -> Optional[pd.DataFrame]:
+        return self._load_persisted_frame(sym, "m1")
