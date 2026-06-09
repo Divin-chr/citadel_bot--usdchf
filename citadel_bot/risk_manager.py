@@ -65,31 +65,37 @@ class RiskManager:
         """Returns True only if ALL risk checks pass."""
         self._ensure_day_rollover()
 
-        if not self._check_session(signal.sym):
-            return False
+        if not self.config.disable_risk_filters:
+            if not self._check_session(signal.sym):
+                return False
 
-        if not self._check_macro_calendar():
-            return False
+            if not self._check_macro_calendar():
+                return False
 
-        if not self._check_daily_drawdown(account_value):
-            return False
+            if not self._check_daily_drawdown(account_value):
+                return False
 
-        # v2.3: Correlation check before position count
-        corr_risk = self._check_correlation_risk(signal.sym)
-        if corr_risk == 'BLOCK':
-            log.warning("[%s] Would exceed correlation-adjusted position limit.", signal.sym)
-            return False
+            # v2.3: Correlation check before position count
+            corr_risk = self._check_correlation_risk(signal.sym)
+            if corr_risk == 'BLOCK':
+                log.warning("[%s] Would exceed correlation-adjusted position limit.", signal.sym)
+                return False
 
-        if not self._check_position_count():
-            return False
+            if not self._check_position_count():
+                return False
+        else:
+            corr_risk = 'LOW'
+            log.info("[%s] Bot-side risk filters disabled; allowing trade execution to proceed.", signal.sym)
 
         # Compute position size and attach it
         size = self._position_size(signal, account_value, corr_risk)
-        if size < 1:
-            log.warning("[%s] Position size too small (%.2f). Skipping.", signal.sym, size)
+        if size < 1 and self.config.disable_risk_filters:
+            size = 1.0
+        if size <= 0:
+            log.warning("[%s] Position size is not positive (%.4f). Skipping.", signal.sym, size)
             return False
 
-        signal.__dict__["quantity"] = int(size)
+        signal.__dict__["quantity"] = float(size)
         return True
 
     # ── Session filter ────────────────────────────────────────────────
@@ -432,7 +438,10 @@ class RiskManager:
 
         dollar_risk = account_value * risk_pct
         size = dollar_risk / risk_per_contract
-        return max(0.0, round(size, 4))
+        size = max(0.0, round(size, 4))
+        if self.config.disable_risk_filters and size < 1.0:
+            size = 1.0
+        return size
 
     def _kelly_risk_pct(self, signal: TradeSignal) -> float:
         """

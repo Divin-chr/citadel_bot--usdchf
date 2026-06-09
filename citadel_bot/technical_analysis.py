@@ -143,14 +143,29 @@ class TechnicalAnalyzer:
 
     def _compute_trend(self, r: TAResult, df: pd.DataFrame):
         close = df["close"]
-        r.trend_daily  = self._ema_trend(close.tail(20))
-        weekly  = close.resample("W").last().dropna()
+
+        # Explicit multi-timeframe trend context: 1m, 5m, 1h, daily, weekly
+        tf_series = {
+            "1m": close,
+            "5m": close.resample("5min").last().dropna(),
+            "1h": close.resample("1h").last().dropna(),
+            "1d": close.resample("1D").last().dropna(),
+            "1w": close.resample("1W").last().dropna(),
+        }
+
+        r.trend_daily = self._ema_trend(tf_series["1d"]) if len(tf_series["1d"]) > 5 else "NEUTRAL"
+        r.trend_weekly = self._ema_trend(tf_series["1w"]) if len(tf_series["1w"]) > 5 else "NEUTRAL"
         monthly = close.resample("ME").last().dropna()
-        r.trend_weekly  = self._ema_trend(weekly)  if len(weekly)  > 5 else "NEUTRAL"
         r.trend_monthly = self._ema_trend(monthly) if len(monthly) > 3 else "NEUTRAL"
+
+        weights = {"1m": 0.15, "5m": 0.20, "1h": 0.25, "1d": 0.20, "1w": 0.20}
         scores = {"BULLISH": 1, "NEUTRAL": 0, "BEARISH": -1}
-        raw = scores[r.trend_daily] + scores[r.trend_weekly] + scores[r.trend_monthly]
-        r.trend_strength = (raw + 3) / 6
+        raw = sum(
+            scores[self._ema_trend(series)] * weights[label]
+            for label, series in tf_series.items()
+            if len(series) >= 5
+        )
+        r.trend_strength = float(np.clip(raw / 1.0, 0.0, 1.0))
 
     @staticmethod
     def _ema_trend(s: pd.Series) -> str:

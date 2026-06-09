@@ -28,8 +28,9 @@ import pandas as pd
 
 from citadel_bot.config import BotConfig
 from citadel_bot.database.database_manager import db_manager
+from citadel_bot.utils.logger import get_logger
 
-log = logging.getLogger("buffer")
+log = get_logger("buffer")
 
 
 class AdaptiveBuffer:
@@ -224,7 +225,7 @@ class AdaptiveBuffer:
         step = self.config.calibration_step_min
         candidates = list(range(min_d, max_d + 1, step))
 
-        closes = df["close"].values
+        closes = pd.to_numeric(df["close"], errors="coerce").dropna().to_numpy(dtype=float)
         n = len(closes)
 
         # Rolling windows: 60-day train (~23400 bars) + 20-day validate (~7800 bars)

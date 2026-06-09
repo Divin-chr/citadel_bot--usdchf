@@ -7,9 +7,12 @@ from datetime import datetime
 
 
 def setup_logger(name: str, log_dir: str = "logs") -> logging.Logger:
-    Path(log_dir).mkdir(exist_ok=True)
+    log_path = Path(log_dir)
+    if not log_path.is_absolute():
+        log_path = Path(__file__).resolve().parents[2] / log_path
+    log_path.mkdir(parents=True, exist_ok=True)
     today = datetime.now().strftime("%Y-%m-%d")
-    log_file = Path(log_dir) / f"bot_{today}.log"
+    log_file = log_path / f"bot_{today}.log"
 
     fmt = logging.Formatter(
         "%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s",

@@ -21,18 +21,21 @@ database_password: ''
 
 data_dir: data
 delta_threshold: 0.55
+disable_risk_filters: false
+disable_signal_filters: false
 history_bars: 400
 instrument_currency: {}
 instrument_exchange: {}
 instrument_multiplier: {}
 instrument_session: {}
 instruments:
-- USDCHF
+- US30
 kelly_cap_pct: 0.02
 kelly_fraction: 0.5
 kelly_lookback_trades: 50
 log_dir: logs
 log_level: INFO
+log_metaapi_messages: true
 loop_interval_sec: 30.0
 ma_periods:
 - 50

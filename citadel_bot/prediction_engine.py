@@ -12,7 +12,7 @@ v2.3 changes:
 import logging
 from dataclasses import dataclass, field
 from typing import Optional, Dict, List, Tuple
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pandas as pd
@@ -111,8 +111,9 @@ class SignalGenerator:
         self._bar_counter: Dict[str, int] = {}
         # v2.3: Pending predictions awaiting confirmation
         self._pending_predictions: Dict[str, List[Tuple[datetime, Prediction]]] = {}
+        self._last_prediction_bar_ts: Dict[str, datetime] = {}
         # v2.3: Confirmation delay in bars (1 bar = 1 min)
-        self.confirmation_delay_bars = config.__dict__.get('confirmation_delay_min', 15)
+        self.confirmation_delay_min = int(config.__dict__.get('confirmation_delay_min', 15))
 
     def tick(self, sym: str):
         """Increment bar counter for cooldown tracking. Call once per loop."""
@@ -120,15 +121,58 @@ class SignalGenerator:
 
     def store_prediction(self, sym: str, pred: Prediction):
         """Store prediction for later confirmation check."""
+        bar_ts = pred.timestamp
+        if isinstance(bar_ts, pd.Timestamp):
+            bar_ts = bar_ts.to_pydatetime()
+        if bar_ts.tzinfo is None:
+            bar_ts = bar_ts.replace(tzinfo=timezone.utc)
+
+        last_ts = self._last_prediction_bar_ts.get(sym)
+        if last_ts is not None and bar_ts <= last_ts:
+            return
+
+        self._last_prediction_bar_ts[sym] = bar_ts
+        pred.timestamp = bar_ts
+
         if sym not in self._pending_predictions:
             self._pending_predictions[sym] = []
-        self._pending_predictions[sym].append((datetime.now(timezone.utc), pred))
+        self._pending_predictions[sym].append((bar_ts, pred))
 
         # Clean old predictions (> 2 hours)
         cutoff = datetime.now(timezone.utc) - pd.Timedelta(hours=2)
         self._pending_predictions[sym] = [
             (t, p) for t, p in self._pending_predictions[sym] if t > cutoff
         ]
+
+    def confirm_prediction(self, sym: str, rt_df: pd.DataFrame) -> Optional[Tuple[Prediction, Delta]]:
+        """Return the oldest prediction with enough post-prediction data to confirm."""
+        pending = self._pending_predictions.get(sym, [])
+        if not pending or rt_df is None or rt_df.empty:
+            return None
+
+        rt_df = rt_df.sort_index()
+        latest_ts = rt_df.index[-1]
+        if isinstance(latest_ts, pd.Timestamp):
+            latest_ts = latest_ts.to_pydatetime()
+        if latest_ts.tzinfo is None:
+            latest_ts = latest_ts.replace(tzinfo=timezone.utc)
+
+        ready_at = timedelta(minutes=self.confirmation_delay_min)
+        remaining: List[Tuple[datetime, Prediction]] = []
+        selected: Optional[Prediction] = None
+
+        for pred_ts, pred in pending:
+            if selected is None and latest_ts - pred_ts >= ready_at:
+                selected = pred
+                continue
+            remaining.append((pred_ts, pred))
+
+        self._pending_predictions[sym] = remaining
+        if selected is None:
+            return None
+
+        delta = self.compute_delta(sym, selected, rt_df)
+        return selected, delta
 
     # ── Delta computation (v2.3 — post-prediction momentum only) ───────────────────
 
@@ -233,38 +277,47 @@ class SignalGenerator:
         cfg = self.config
         ta  = pred.ta
 
-        # Gate 0: cooldown
         current_bar = self._bar_counter.get(sym, 0)
         last_bar = self._last_signal_bar.get(sym, -cfg.signal_cooldown_bars - 1)
-        if current_bar - last_bar < cfg.signal_cooldown_bars:
-            log.debug("[%s] Signal rejected — cooldown (%d/%d bars)",
-                      sym, current_bar - last_bar, cfg.signal_cooldown_bars)
-            return None
 
-        # Gate 1: volatility regime halt
-        if ta.vol_regime == "EXTREME":
-            log.debug("[%s] Signal rejected — EXTREME volatility regime", sym)
-            return None
+        if not cfg.disable_signal_filters:
+            # Gate 0: cooldown
+            if current_bar - last_bar < cfg.signal_cooldown_bars:
+                log.debug("[%s] Signal rejected — cooldown (%d/%d bars)",
+                          sym, current_bar - last_bar, cfg.signal_cooldown_bars)
+                return None
 
-        # Gate 2: confidence
-        if pred.confidence < cfg.min_confidence:
-            log.debug("[%s] Signal rejected — confidence %.2f < %.2f",
-                      sym, pred.confidence, cfg.min_confidence)
-            return None
+            # Gate 1: volatility regime halt
+            if ta.vol_regime == "EXTREME":
+                log.debug("[%s] Signal rejected — EXTREME volatility regime", sym)
+                return None
 
-        # Gate 3: neutral signals don't trade
+            # Gate 2: confidence
+            if pred.confidence < cfg.min_confidence:
+                log.debug("[%s] Signal rejected — confidence %.2f < %.2f",
+                          sym, pred.confidence, cfg.min_confidence)
+                return None
+
+            # Gate 3: neutral signals don't trade
+            if pred.direction == 0:
+                log.debug("[%s] Signal rejected — direction FLAT", sym)
+                return None
+
+            # Gate 4: delta alignment
+            if not delta.aligned:
+                log.debug("[%s] Signal rejected — prediction not confirmed by real-time delta", sym)
+                return None
+
+            if delta.alignment_score < cfg.delta_threshold:
+                log.debug("[%s] Signal rejected — alignment score %.2f < %.2f",
+                          sym, delta.alignment_score, cfg.delta_threshold)
+                return None
+        else:
+            log.info("[%s] Bot-side signal filters disabled; allowing signal generation to proceed.", sym)
+
+        # Gate 3: neutral signals don't trade (always enforced)
         if pred.direction == 0:
             log.debug("[%s] Signal rejected — direction FLAT", sym)
-            return None
-
-        # Gate 4: delta alignment
-        if not delta.aligned:
-            log.debug("[%s] Signal rejected — prediction not confirmed by real-time delta", sym)
-            return None
-
-        if delta.alignment_score < cfg.delta_threshold:
-            log.debug("[%s] Signal rejected — alignment score %.2f < %.2f",
-                      sym, delta.alignment_score, cfg.delta_threshold)
             return None
 
         # Compute entry, SL, TP from real-time price + ATR
@@ -291,7 +344,7 @@ class SignalGenerator:
         rr = reward_pts / risk_pts if risk_pts > 0 else 0.0
 
         # Gate 5: R:R
-        if rr < cfg.min_rr_ratio:
+        if not cfg.disable_signal_filters and rr < cfg.min_rr_ratio:
             log.debug("[%s] Signal rejected — R:R %.2f < %.2f", sym, rr, cfg.min_rr_ratio)
             return None
 

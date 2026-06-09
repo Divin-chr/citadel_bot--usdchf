@@ -4,7 +4,7 @@ execution_engine.py - MetaApi order execution and trade ledger tracking.
 
 import asyncio
 import csv
-import logging
+import concurrent.futures
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,8 +13,9 @@ from typing import Dict, List, Optional, Set, Tuple
 from citadel_bot.config import BotConfig
 from citadel_bot.prediction_engine import TradeSignal
 from citadel_bot.database.database_manager import db_manager
+from citadel_bot.utils.logger import get_logger
 
-log = logging.getLogger("execution")
+log = get_logger("execution")
 
 
 @dataclass
@@ -44,9 +45,12 @@ class ExecutionEngine:
         self._open_ticket_ids: Set[str] = set()
         self._bracket_groups: Dict[str, BracketState] = {}
         self._db_available = False
+        self._last_order_error: Optional[dict] = None
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
 
     async def connect(self):
         self._connected = True
+        self._loop = asyncio.get_running_loop()
         self._update_account_value()
         self._db_available = await db_manager.health_check()
         if self._db_available:
@@ -61,27 +65,120 @@ class ExecutionEngine:
             if close:
                 await close()
             self._connected = False
+            self._loop = None
             log.info("MetaApi execution disconnected.")
 
     def attach_risk_manager(self, risk_manager):
         self._risk_manager = risk_manager
 
+    async def place_manual_market_order(
+        self,
+        sym: str,
+        direction: str,
+        volume: float = 0.01,
+        stop_loss: Optional[float] = None,
+        take_profit: Optional[float] = None,
+    ) -> dict:
+        """Place a small manual market order through the same MetaApi sender used by bot signals."""
+        if not self._connected:
+            return {"success": False, "message": "MetaApi execution is not connected"}
+
+        sym = str(sym or "").strip().upper()
+        direction = str(direction or "").strip().upper()
+        if direction in {"BUY", "LONG"}:
+            direction = "LONG"
+        elif direction in {"SELL", "SHORT"}:
+            direction = "SHORT"
+        else:
+            return {"success": False, "message": "Direction must be BUY/LONG or SELL/SHORT"}
+
+        normalized_volume = self._normalize_volume(sym, float(volume))
+        if normalized_volume <= 0:
+            return {
+                "success": False,
+                "message": f"Volume {volume} is below the broker minimum/step for {sym}",
+            }
+
+        if stop_loss is None or take_profit is None:
+            return {"success": False, "message": "Manual order requires absolute stop loss and take profit"}
+
+        sl = self._round_price(sym, float(stop_loss))
+        tp = self._round_price(sym, float(take_profit))
+        if min(sl, tp) <= 0:
+            return {"success": False, "message": "Stop loss and take profit must be positive prices"}
+
+        result = await self._send_market_order(sym, direction, normalized_volume, sl, tp)
+        if result is None:
+            response = {
+                "success": False,
+                "message": "MetaApi rejected or failed the manual market order",
+            }
+            if self._last_order_error:
+                response["details"] = self._last_order_error
+            return response
+
+        ticket = self._response_ticket(result)
+        status = str(result.get("stringCode") or result.get("numericCode") or "submitted")
+        if ticket:
+            self._open_ticket_ids.add(ticket)
+            self._tracked_positions[ticket] = {
+                "sym": sym,
+                "direction": 1.0 if direction == "LONG" else -1.0,
+                "volume": normalized_volume,
+                "opened_at_utc": self._utc_now_iso(),
+                "is_tp1_leg": False,
+                "entry_price": 0.0,
+                "client_id": result.get("clientId") or "",
+            }
+
+        self._append_ledger_row(
+            event_type="ENTRY_FILL",
+            sym=sym,
+            parent_order_id=self._ticket_to_int(ticket),
+            order_id=self._ticket_to_int(ticket),
+            direction=direction,
+            qty_delta=normalized_volume,
+            qty_open=normalized_volume,
+            fill_price=0.0,
+            pnl_delta=0.0,
+            realized_pnl=0.0,
+            status=status,
+            note="Manual MetaApi market order submitted through bot execution engine",
+        )
+
+        return {
+            "success": True,
+            "message": f"Manual {direction} order submitted for {sym}",
+            "symbol": sym,
+            "direction": direction,
+            "volume": normalized_volume,
+            "stop_loss": sl,
+            "take_profit": tp,
+            "ticket": ticket,
+            "result": result,
+        }
+
     async def place_bracket_order(self, signal: TradeSignal):
         if not self._connected:
             log.error("Cannot place order - MetaApi is not connected.")
+            return False
+        if not self._validate_signal_prices(signal):
             return False
         if self._has_open_trade_for_symbol(signal.sym):
             log.warning("[%s] Existing open trade detected. Skipping duplicate signal.", signal.sym)
             return False
 
-        qty = float(getattr(signal, "quantity", 1.0))
+        qty = self._normalize_volume(signal.sym, float(getattr(signal, "quantity", 1.0)))
+        if qty <= 0:
+            log.warning("[%s] Quantity %.6f is below broker minimum/step. Skipping.", signal.sym, float(getattr(signal, "quantity", 0.0)))
+            return False
         vol1, vol2 = self._split_target_quantities(signal.sym, qty)
         direction = "LONG" if signal.direction == "LONG" else "SHORT"
         sends = []
         if vol1 > 0:
-            sends.append((vol1, signal.tp1, True))
+            sends.append((vol1, self._round_price(signal.sym, signal.tp1), True))
         if vol2 > 0:
-            sends.append((vol2, signal.tp2, False))
+            sends.append((vol2, self._round_price(signal.sym, signal.tp2), False))
 
         sent_count = 0
         bracket_tickets: List[str] = []
@@ -90,13 +187,16 @@ class ExecutionEngine:
 
         for volume, tp, is_tp1 in sends:
             result = await self._send_market_order(
-                signal.sym, direction, volume, signal.stop_loss, tp
+                signal.sym, direction, volume, self._round_price(signal.sym, signal.stop_loss), tp
             )
             if result is None:
                 continue
 
-            sent_count += 1
             ticket = self._response_ticket(result)
+            if not ticket:
+                log.error("[%s] MetaApi accepted order but returned no order/position ticket: %s", signal.sym, result)
+                continue
+            sent_count += 1
             self._open_ticket_ids.add(ticket)
             self._tracked_positions[ticket] = {
                 "sym": signal.sym,
@@ -105,6 +205,7 @@ class ExecutionEngine:
                 "opened_at_utc": self._utc_now_iso(),
                 "is_tp1_leg": is_tp1,
                 "entry_price": signal.entry,
+                "client_id": result.get("clientId") or "",
             }
             bracket_tickets.append(ticket)
             if is_tp1:
@@ -170,8 +271,17 @@ class ExecutionEngine:
     async def _send_market_order(
         self, sym: str, direction: str, volume: float, sl: float, tp: float
     ) -> Optional[dict]:
+        self._last_order_error = None
         try:
-            options = {"comment": "citadel bot", "clientId": f"citadel-{self._utc_id()}"}
+            options = {
+                "comment": "citadel",
+                "clientId": f"CT_{self._client_id_symbol(sym)}_{self._utc_id()}",
+            }
+            slippage = self.config.__dict__.get("metaapi_slippage_points", None)
+            if slippage is not None:
+                options["slippage"] = max(0, float(slippage))
+            log.info("[MetaApi] submit_order sym=%s direction=%s volume=%.6f sl=%.5f tp=%.5f options=%s",
+                     sym, direction, volume, sl, tp, options)
             if direction == "LONG":
                 result = await self.connection.create_market_buy_order(
                     sym, volume, stop_loss=float(sl), take_profit=float(tp), options=options
@@ -180,13 +290,27 @@ class ExecutionEngine:
                 result = await self.connection.create_market_sell_order(
                     sym, volume, stop_loss=float(sl), take_profit=float(tp), options=options
                 )
+            log.info("[MetaApi] order_result sym=%s result=%s", sym, result)
             code = int(result.get("numericCode", -1))
             if code not in {0, 10008, 10009, 10010, 10025}:
                 log.error("[%s] MetaApi order rejected: %s", sym, result)
+                self._last_order_error = {
+                    "type": "rejected",
+                    "numericCode": result.get("numericCode"),
+                    "stringCode": result.get("stringCode"),
+                    "message": result.get("message"),
+                    "result": result,
+                }
                 return None
             return result
         except Exception as exc:
-            log.error("[%s] MetaApi order failed: %s", sym, exc, exc_info=True)
+            details = self._exception_details(exc)
+            log.error("[%s] MetaApi order failed: %s details=%s", sym, exc, details, exc_info=True)
+            self._last_order_error = {
+                "type": "exception",
+                "message": str(exc),
+                "details": details,
+            }
             return None
 
     def _sync_positions_and_pnl(self):
@@ -267,12 +391,67 @@ class ExecutionEngine:
         spec = self._symbol_specification(sym)
         step = float(spec.get("volumeStep") or spec.get("lotStep") or 0.01) if spec else 0.01
         min_v = float(spec.get("minVolume") or spec.get("lotMin") or step) if spec else step
-        q = max(min_v, qty)
+        q = self._normalize_volume(sym, qty)
+        if q < min_v:
+            return 0.0, 0.0
         first = max(min_v, round((q * self.config.tp1_size_pct) / step) * step)
         second = max(0.0, round((q - first) / step) * step)
         if second < min_v:
             return round(q, 4), 0.0
         return round(first, 4), round(second, 4)
+
+    def _validate_signal_prices(self, signal: TradeSignal) -> bool:
+        entry = float(signal.entry)
+        sl = float(signal.stop_loss)
+        tp1 = float(signal.tp1)
+        tp2 = float(signal.tp2)
+        if min(entry, sl, tp1, tp2) <= 0:
+            log.warning("[%s] Invalid non-positive signal prices. entry=%s sl=%s tp1=%s tp2=%s",
+                        signal.sym, entry, sl, tp1, tp2)
+            return False
+        if signal.direction == "LONG":
+            valid = sl < entry < tp1 <= tp2
+        else:
+            valid = tp2 <= tp1 < entry < sl
+        if not valid:
+            log.warning("[%s] Invalid %s bracket prices. entry=%s sl=%s tp1=%s tp2=%s",
+                        signal.sym, signal.direction, entry, sl, tp1, tp2)
+            return False
+        return True
+
+    def _normalize_volume(self, sym: str, volume: float) -> float:
+        spec = self._symbol_specification(sym)
+        if not spec:
+            return round(max(0.0, volume), 4)
+
+        step = float(spec.get("volumeStep") or spec.get("lotStep") or 0.01)
+        min_v = float(spec.get("minVolume") or spec.get("lotMin") or step)
+        max_v = float(spec.get("maxVolume") or spec.get("lotMax") or volume)
+        if step <= 0 or volume < min_v:
+            return 0.0
+
+        normalized = round(volume / step) * step
+        normalized = min(max(normalized, min_v), max_v)
+        decimals = max(0, min(8, len(str(step).split(".")[1]) if "." in str(step) else 0))
+        return round(normalized, decimals)
+
+    def _round_price(self, sym: str, price: float) -> float:
+        spec = self._symbol_specification(sym) or {}
+        digits = spec.get("digits") or spec.get("precision")
+        if digits is not None:
+            try:
+                return round(float(price), int(digits))
+            except Exception:
+                pass
+        tick_size = spec.get("tickSize") or spec.get("tradeTickSize")
+        if tick_size:
+            try:
+                tick = float(tick_size)
+                if tick > 0:
+                    return round(round(float(price) / tick) * tick, 10)
+            except Exception:
+                pass
+        return round(float(price), 5)
 
     def _update_account_value(self):
         info = getattr(self.connection.terminal_state, "account_information", None)
@@ -295,12 +474,22 @@ class ExecutionEngine:
             return None
 
     @staticmethod
+    def _exception_details(exc) -> object:
+        details = getattr(exc, "details", None)
+        if details is not None:
+            return details
+        response = getattr(exc, "response", None)
+        if response is not None:
+            return response
+        return getattr(exc, "__dict__", {}) or None
+
+    @staticmethod
     def _position_id(position: dict) -> str:
         return str(position.get("id") or position.get("positionId") or "")
 
     @staticmethod
     def _response_ticket(result: dict) -> str:
-        return str(result.get("positionId") or result.get("orderId") or result.get("clientId") or "")
+        return str(result.get("positionId") or result.get("orderId") or "")
 
     @staticmethod
     def _ticket_to_int(ticket: str) -> Optional[int]:
@@ -309,7 +498,12 @@ class ExecutionEngine:
 
     @staticmethod
     def _utc_id() -> str:
-        return datetime.now(timezone.utc).strftime("%H%M%S%f")[:12]
+        return datetime.now(timezone.utc).strftime("%H%M%S")
+
+    @staticmethod
+    def _client_id_symbol(sym: str) -> str:
+        cleaned = "".join(ch for ch in str(sym).upper() if ch.isalnum())
+        return cleaned[:12] or "ORDER"
 
     @staticmethod
     def _utc_now_iso() -> str:
@@ -400,4 +594,26 @@ class ExecutionEngine:
                         return
                     await asyncio.sleep(1)
 
-        asyncio.create_task(_task_wrapper())
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        if running_loop is not None:
+            running_loop.create_task(_task_wrapper())
+            return
+
+        loop = self._loop
+        if loop is None or loop.is_closed():
+            log.warning("Background task '%s' skipped: execution event loop is not available", name)
+            return
+
+        future = asyncio.run_coroutine_threadsafe(_task_wrapper(), loop)
+        future.add_done_callback(lambda fut, task_name=name: self._log_background_future_result(fut, task_name))
+
+    @staticmethod
+    def _log_background_future_result(future: concurrent.futures.Future, name: str):
+        try:
+            future.result()
+        except Exception as exc:
+            log.error("Background task '%s' failed after cross-thread scheduling: %s", name, exc)

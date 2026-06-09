@@ -6,14 +6,15 @@ Now with PostgreSQL persistence for zero-downtime operation
 import asyncio
 import logging
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 
 import pandas as pd
 
 from citadel_bot.config import BotConfig
 from citadel_bot.database.database_manager import db_manager
+from citadel_bot.utils.logger import get_logger
 
-log = logging.getLogger("pipeline")
+log = get_logger("pipeline")
 
 SUPPORTED_TIMEFRAMES = [
     ("1m", "m1"),
@@ -46,6 +47,15 @@ class DataPipeline:
         # Feed a deeper context window to TA/calibration when local history exists.
         self._analysis_window_bars = max(self.config.history_bars, 5000)
         self._db_available = False
+        self._pending_tasks: List[asyncio.Task] = []
+        self._last_timeframe_refresh: Dict[Tuple[str, str], object] = {}
+        self._timeframe_refresh_seconds = {
+            "1m": 60,
+            "5m": 300,
+            "1h": 3600,
+            "1d": 21600,
+            "1w": 86400,
+        }
 
     async def get_realtime(self, sym: str) -> Optional[pd.DataFrame]:
         """Return latest rolling bars and refresh from MT5 on each call."""
@@ -69,7 +79,7 @@ class DataPipeline:
         # Check database availability
         self._db_available = await db_manager.health_check()
         if self._db_available:
-            log.info("✅ Database available for data persistence")
+            log.debug("Database available for data persistence")
         else:
             log.warning("⚠️  Database not available, using CSV fallback only")
 
@@ -86,7 +96,18 @@ class DataPipeline:
             # Symbol selection not needed in MetaApi
             await self._refresh_symbol(sym)
             df = self._bars.get(sym, pd.DataFrame())
-            log.info("[%s] History loaded: %s bars", sym, len(df))
+            log.debug("[%s] History loaded: %s bars", sym, len(df))
+
+        await self.flush_pending_persistence()
+
+    async def flush_pending_persistence(self):
+        """Wait for queued market-data persistence tasks to finish."""
+        if not self._pending_tasks:
+            return
+        pending = [task for task in self._pending_tasks if not task.done()]
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+        self._pending_tasks = [task for task in self._pending_tasks if not task.done()]
 
     async def _load_from_database(self, sym: str) -> Optional[pd.DataFrame]:
         """Load historical data from database"""
@@ -125,6 +146,9 @@ class DataPipeline:
             df['datetime'] = pd.to_datetime(df['datetime'], utc=True)
             df = df.set_index('datetime').sort_index()
             df = self._normalize_index(df)
+            for col in ["open", "high", "low", "close", "volume"]:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            df = df.dropna(subset=["open", "high", "low", "close"]).astype(float)
 
             # Merge with existing data
             existing = self._bars.get(sym)
@@ -143,38 +167,79 @@ class DataPipeline:
             return None
 
     async def _refresh_symbol(self, sym: str):
-        try:
-            from datetime import datetime, timedelta
+        from datetime import datetime
 
-            end_time = datetime.utcnow()
-            fetched_any = False
+        end_time = datetime.utcnow()
+        fetched_any = False
 
-            for metaapi_timeframe, db_timeframe in SUPPORTED_TIMEFRAMES:
-                start_time = self._timeframe_start_time(end_time, metaapi_timeframe)
+        for metaapi_timeframe, db_timeframe in SUPPORTED_TIMEFRAMES:
+            if not self._should_refresh_timeframe(sym, metaapi_timeframe, end_time):
+                continue
+
+            start_time = self._timeframe_start_time(end_time, metaapi_timeframe)
+            try:
                 candles = await self.account.get_historical_candles(
                     sym,
                     metaapi_timeframe,
                     start_time,
                     self.config.history_bars,
                 )
-                if candles is None or len(candles) == 0:
-                    continue
+            except Exception as exc:
+                self._last_timeframe_refresh[(sym, metaapi_timeframe)] = end_time
+                log.error(
+                    "[%s] MetaApi historical candles failed timeframe=%s db_timeframe=%s start=%s limit=%s error_type=%s error=%s details=%s",
+                    sym,
+                    metaapi_timeframe,
+                    db_timeframe,
+                    start_time.isoformat(),
+                    self.config.history_bars,
+                    type(exc).__name__,
+                    exc,
+                    self._exception_details(exc),
+                )
+                continue
 
-                fetched_any = True
-                df = self._candles_to_dataframe(candles)
-                if df.empty:
-                    continue
+            self._last_timeframe_refresh[(sym, metaapi_timeframe)] = end_time
 
-                self._persist_symbol_data(sym, df, db_timeframe)
+            if candles is None or len(candles) == 0:
+                log.debug(
+                    "[%s] MetaApi returned no candles timeframe=%s start=%s limit=%s",
+                    sym,
+                    metaapi_timeframe,
+                    start_time.isoformat(),
+                    self.config.history_bars,
+                )
+                continue
 
-            if fetched_any:
-                merged = self._persisted_m1.get(sym)
-                if merged is not None and not merged.empty:
-                    self._bars[sym] = merged.tail(self._analysis_window_bars)
-                else:
-                    self._bars[sym] = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
-        except Exception as exc:
-            log.error("[%s] MetaApi refresh error: %s", sym, exc)
+            fetched_any = True
+            df = self._candles_to_dataframe(candles)
+            if df.empty:
+                log.debug("[%s] MetaApi candles converted to empty dataframe timeframe=%s", sym, metaapi_timeframe)
+                continue
+
+            log.debug(
+                "[%s] MetaApi %s candles fetched: %d bars %s -> %s",
+                sym,
+                db_timeframe,
+                len(df),
+                df.index[0].isoformat(),
+                df.index[-1].isoformat(),
+            )
+            self._persist_symbol_data(sym, df, db_timeframe)
+
+        if fetched_any:
+            merged = self._persisted_m1.get(sym)
+            if merged is not None and not merged.empty:
+                self._bars[sym] = merged.tail(self._analysis_window_bars)
+            else:
+                self._bars[sym] = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
+
+    def _should_refresh_timeframe(self, sym: str, metaapi_timeframe: str, now) -> bool:
+        last_refresh = self._last_timeframe_refresh.get((sym, metaapi_timeframe))
+        if last_refresh is None:
+            return True
+        interval = self._timeframe_refresh_seconds.get(metaapi_timeframe, 60)
+        return (now - last_refresh).total_seconds() >= interval
 
     def _timeframe_start_time(self, end_time, metaapi_timeframe: str):
         from datetime import timedelta
@@ -236,13 +301,21 @@ class DataPipeline:
         if persisted is None or persisted.empty:
             persisted = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
 
+        timeframe_delta = {
+            "m1": pd.Timedelta(minutes=1),
+            "m5": pd.Timedelta(minutes=5),
+            "h1": pd.Timedelta(hours=1),
+            "d1": pd.Timedelta(days=1),
+            "w1": pd.Timedelta(weeks=1),
+        }.get(timeframe, pd.Timedelta(minutes=1))
+
         if not persisted.empty:
-            last_dt = persisted.index[-1] - pd.Timedelta(minutes=5 if timeframe == "m1" else 1)
+            last_dt = persisted.index[-1] - timeframe_delta
             new_filtered = new_df[new_df.index >= last_dt]
         else:
             new_filtered = new_df
 
-        merged = pd.concat([persisted, new_df])
+        merged = pd.concat([persisted, new_filtered])
         merged = self._normalize_index(merged)
         merged = merged[~merged.index.duplicated(keep="last")].sort_index()
         merged = merged.tail(self._analysis_window_bars)
@@ -251,12 +324,41 @@ class DataPipeline:
 
         if timeframe == "m1":
             self._persisted_m1[sym] = merged
+            derived_m5 = self._derive_timeframe_from_m1(merged, "5min")
+            if derived_m5 is not None and not derived_m5.empty:
+                self._persist_symbol_data(sym, derived_m5, "m5")
 
         if self._db_available and not new_filtered.empty:
             self._create_background_task(
                 lambda sym=sym, df=new_filtered, tf=timeframe: self._persist_to_database(sym, df, tf),
                 f"persist_market_data_{sym}_{timeframe}"
             )
+
+    def _derive_timeframe_from_m1(self, df: pd.DataFrame, freq: str) -> Optional[pd.DataFrame]:
+        """Build higher timeframe OHLCV bars from fresh m1 data."""
+        if df is None or df.empty:
+            return None
+        try:
+            source = self._normalize_index(df)
+            aggregated = source.resample(freq, label="left", closed="left").agg({
+                "open": "first",
+                "high": "max",
+                "low": "min",
+                "close": "last",
+                "volume": "sum",
+            })
+            aggregated = aggregated.dropna(subset=["open", "high", "low", "close"])
+
+            # Keep only completed bars. The current partial 5m bar can distort TA/logs.
+            latest_m1 = source.index[-1]
+            if latest_m1.tzinfo is None:
+                latest_m1 = latest_m1.tz_localize("UTC")
+            cutoff = latest_m1.floor(freq)
+            aggregated = aggregated[aggregated.index < cutoff]
+            return aggregated.astype(float)
+        except Exception as exc:
+            log.warning("Could not derive %s bars from m1 data: %s", freq, exc)
+            return None
 
     async def _persist_to_database(self, sym: str, df: pd.DataFrame, timeframe: str):
         """Persist market data to database asynchronously"""
@@ -280,10 +382,29 @@ class DataPipeline:
                     metaapi_account_id=self.config.metaapi_account_id,
                 )
 
-            log.debug("[%s] Persisted %d bars to database", sym, len(df))
+            log.debug(
+                "[%s] Persisted %d %s bars to database: %s -> %s",
+                sym,
+                len(df),
+                timeframe,
+                df.index[0].isoformat(),
+                df.index[-1].isoformat(),
+            )
 
         except Exception as e:
-            log.error("[%s] Failed to persist to database: %s", sym, e)
+            first_ts = df.index[0].isoformat() if df is not None and not df.empty else ""
+            last_ts = df.index[-1].isoformat() if df is not None and not df.empty else ""
+            log.error(
+                "[%s] Database persistence failed timeframe=%s rows=%s range=%s -> %s error_type=%s error=%s details=%s",
+                sym,
+                timeframe,
+                0 if df is None else len(df),
+                first_ts,
+                last_ts,
+                type(e).__name__,
+                e,
+                self._exception_details(e),
+            )
 
     def _create_background_task(self, coro_factory, name: str = ""):
         async def _task_wrapper():
@@ -300,7 +421,19 @@ class DataPipeline:
                         return
                     await asyncio.sleep(1)
 
-        asyncio.create_task(_task_wrapper())
+        task = asyncio.create_task(_task_wrapper())
+        self._pending_tasks.append(task)
+        return task
+
+    @staticmethod
+    def _exception_details(exc) -> object:
+        details = getattr(exc, "details", None)
+        if details is not None:
+            return details
+        response = getattr(exc, "response", None)
+        if response is not None:
+            return response
+        return getattr(exc, "__dict__", {}) or None
 
     def _load_persisted_frame(self, sym: str, timeframe: str) -> Optional[pd.DataFrame]:
         path = self._data_dir / f"{sym}_{timeframe}.csv"

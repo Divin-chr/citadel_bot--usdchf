@@ -322,6 +322,11 @@ class DatabaseMigrator:
                     continue
 
                 timestamp = pd.to_datetime(row['timestamp_utc'], utc=True)
+                event_type = row['event_type']
+                note = row.get('note', '')
+                if event_type == 'MANUAL_ENTRY':
+                    event_type = 'ENTRY_FILL'
+                    note = f"Legacy MANUAL_ENTRY normalized for DB import. {note}".strip()
 
                 await self.conn.execute("""
                     INSERT INTO trade_ledger (
@@ -332,7 +337,7 @@ class DatabaseMigrator:
                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                 """,
                 timestamp.to_pydatetime(),
-                row['event_type'],
+                event_type,
                 row['mode'],
                 instrument_map[symbol],
                 int(row['parent_order_id']) if pd.notna(row['parent_order_id']) else None,
@@ -344,7 +349,7 @@ class DatabaseMigrator:
                 float(row['pnl_delta_usd']) if pd.notna(row['pnl_delta_usd']) else None,
                 float(row['realized_pnl_usd']) if pd.notna(row['realized_pnl_usd']) else None,
                 row.get('status', ''),
-                row.get('note', '')
+                note
                 )
 
                 migrated_count += 1

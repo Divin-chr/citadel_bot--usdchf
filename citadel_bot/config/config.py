@@ -56,11 +56,16 @@ class BotConfig:
     min_confidence: float = 0.62
     min_rr_ratio: float = 1.8
     delta_threshold: float = 0.55
+    confirmation_delay_min: int = 15
+    disable_signal_filters: bool = False
 
     # ── Risk management ──────────────────────────────────────────────
     max_risk_per_trade_pct: float = 0.015
     max_daily_drawdown_pct: float = 0.04
     max_concurrent_positions: int = 2
+    max_correlation: float = 0.7
+    max_correlated_positions: int = 1
+    disable_risk_filters: bool = False
     atr_sl_multiplier: float = 1.8
     tp1_rr: float = 1.5
     tp2_rr: float = 3.0
@@ -104,12 +109,17 @@ class BotConfig:
     backtest_spread_pts: float = 0.0     # 0 = use catalog typical_spread
     backtest_slippage_pts: float = 1.0   # 1 tick slippage per side
     backtest_commission_per_lot: float = 0.0
+    backtest_stop_slippage_multiplier: float = 2.0
+    backtest_gap_probability: float = 0.05
 
     # ── Trailing stop ────────────────────────────────────────────────
     trailing_stop_after_tp1: bool = True # move SL to breakeven after TP1
 
     # ── Signal logging ───────────────────────────────────────────────
     signal_logging: bool = True          # log all signal attempts to CSV
+
+    # ── MetaApi / diagnostics ───────────────────────────────────────
+    log_metaapi_messages: bool = True
 
     # ── Misc ─────────────────────────────────────────────────────────
     loop_interval_sec: float = 30.0

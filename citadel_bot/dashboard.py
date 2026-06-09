@@ -65,7 +65,7 @@ def check_password():
 
     def password_entered():
         """Checks whether a password entered by the user is correct."""
-        if st.session_state["username"] == os.getenv("CITADEL_DASHBOARD_USER", "divin") and \
+        if st.session_state["username"] == os.getenv("CITADEL_DASHBOARD_USER", "admin") and \
            st.session_state["password"] == os.getenv("CITADEL_DASHBOARD_PASS", "change_me_now"):
             st.session_state["password_correct"] = True
             del st.session_state["password"]  # don't store password
@@ -101,11 +101,11 @@ class BotController:
         self.bot_task = None
         self.control_api_url = os.getenv("CITADEL_CONTROL_API_URL", "").rstrip("/")
 
-    def _control_request(self, method: str, path: str, default):
+    def _control_request(self, method: str, path: str, default, json_payload=None):
         if not self.control_api_url:
             return default
         try:
-            response = requests.request(method, f"{self.control_api_url}{path}", timeout=5)
+            response = requests.request(method, f"{self.control_api_url}{path}", json=json_payload, timeout=30)
             response.raise_for_status()
             return response.json()
         except Exception as exc:
@@ -251,6 +251,34 @@ class BotController:
         if api_positions is not None:
             return api_positions
         return self._run_async(lambda: self.dashboard_service.get_open_positions(), [])
+
+    def place_manual_order(self, symbol: str, direction: str, volume: float, stop_loss: float, take_profit: float):
+        payload = {
+            "symbol": symbol,
+            "direction": direction,
+            "volume": volume,
+            "stop_loss": stop_loss,
+            "take_profit": take_profit,
+        }
+        if self.control_api_url:
+            result = self._control_request(
+                "POST",
+                "/api/manual-order",
+                {"success": False, "message": "Control API unavailable"},
+                json_payload=payload,
+            )
+            return bool(result.get("success")), result
+
+        if not self.bot_instance or self.bot_loop is None:
+            return False, {"success": False, "message": "Bot must be running before placing a manual test order"}
+
+        try:
+            future = asyncio.run_coroutine_threadsafe(self.bot_instance.place_manual_order(payload), self.bot_loop)
+            result = future.result(timeout=30)
+            return bool(result.get("success")), result
+        except Exception as exc:
+            self.logger.error("Manual order failed: %s", exc)
+            return False, {"success": False, "message": str(exc)}
 
     def _run_async(self, coro_factory, default):
         return run_in_shared_loop(coro_factory, default=default, timeout=5)
@@ -404,6 +432,49 @@ def show_overview(status):
         st.info("No open positions")
 
     st.markdown("---")
+
+    st.subheader("Manual Microlot Test")
+    st.warning("This submits a real MetaApi market order through the bot execution engine. Use the smallest broker-accepted volume and close the position yourself after the test.")
+    if not bot_controller.config.instruments:
+        st.info("Configure at least one instrument before using the manual test order.")
+    else:
+        manual_col1, manual_col2, manual_col3, manual_col4, manual_col5 = st.columns(5)
+        with manual_col1:
+            manual_symbol = st.selectbox(
+                "Symbol",
+                options=bot_controller.config.instruments,
+                index=bot_controller.config.instruments.index("US30") if "US30" in bot_controller.config.instruments else 0,
+                key="manual_order_symbol",
+            )
+        with manual_col2:
+            manual_direction = st.selectbox("Side", ["BUY", "SELL"], key="manual_order_direction")
+        with manual_col3:
+            manual_volume = st.number_input("Volume", min_value=0.01, value=0.01, step=0.01, format="%.2f", key="manual_order_volume")
+        with manual_col4:
+            manual_sl = st.number_input("Stop Loss", min_value=0.0, value=0.0, step=0.1, format="%.5f", key="manual_order_sl")
+        with manual_col5:
+            manual_tp = st.number_input("Take Profit", min_value=0.0, value=0.0, step=0.1, format="%.5f", key="manual_order_tp")
+
+        manual_confirm = st.checkbox("I understand this can place a real market position", key="manual_order_confirm")
+        if st.button("Submit Manual Test Order", type="primary", disabled=not manual_confirm, key="manual_order_submit"):
+            if manual_sl <= 0 or manual_tp <= 0:
+                st.error("Enter absolute Stop Loss and Take Profit prices before submitting.")
+            elif not status.get("running"):
+                st.error("Start the bot first so the order uses the running bot execution engine.")
+            else:
+                success, result = bot_controller.place_manual_order(
+                    manual_symbol,
+                    manual_direction,
+                    manual_volume,
+                    manual_sl,
+                    manual_tp,
+                )
+                if success:
+                    st.success(f"{result.get('message')} | ticket={result.get('ticket') or 'pending'}")
+                else:
+                    st.error(result.get("message", "Manual order failed"))
+                    if result.get("details"):
+                        st.json(result["details"])
 
     # Instruments
     st.subheader("📊 Configured Instruments")
@@ -750,7 +821,7 @@ def show_trading_status():
 def show_logs():
     st.title("📋 Logs")
 
-    log_dir = Path("logs")
+    log_dir = PROJECT_ROOT / "logs"
     if not log_dir.exists():
         st.info("Logs directory not found")
         return
@@ -761,6 +832,14 @@ def show_logs():
         return
 
     latest = log_files[0]
+    controls_col1, controls_col2, controls_col3 = st.columns(3)
+    with controls_col1:
+        auto_refresh = st.checkbox("Auto-refresh", value=True, key="logs_auto_refresh")
+    with controls_col2:
+        refresh_interval = st.number_input("Refresh seconds", min_value=2, max_value=60, value=5, step=1, key="logs_refresh_interval")
+    with controls_col3:
+        tail_lines = st.number_input("Tail lines", min_value=50, max_value=5000, value=500, step=50, key="logs_tail_lines")
+
     selected_file = st.selectbox(
         "Select log file",
         options=[f.name for f in log_files],
@@ -774,17 +853,19 @@ def show_logs():
 
     try:
         with open(log_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+            lines = f.readlines()
     except Exception as e:
         st.error(f"Error reading log file: {e}")
         return
 
+    content = "".join(lines[-int(tail_lines):])
     if not content:
         st.info("Selected log file is empty.")
         return
 
+    st.caption(f"Showing last {min(len(lines), int(tail_lines))} of {len(lines)} lines. Last refreshed: {datetime.now().isoformat(timespec='seconds')}")
     st.text_area(
-        label="Full log contents",
+        label="Live log tail",
         value=content,
         height=600,
         max_chars=None,
@@ -798,6 +879,10 @@ def show_logs():
     for log_file in log_files:
         modified = log_file.stat().st_mtime
         st.write(f"- {log_file.name} (last modified: {datetime.fromtimestamp(modified).isoformat()})")
+
+    if auto_refresh:
+        time.sleep(int(refresh_interval))
+        st.rerun()
 
 
 def show_analytics():

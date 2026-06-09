@@ -13,7 +13,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from metaapi_cloud_sdk import MetaApi
 
 from citadel_bot.config import BotConfig
@@ -78,6 +78,15 @@ def api_stop():
 @app.post('/api/reload-config')
 def api_reload_config():
     return jsonify(_supervisor.reload_config() if _supervisor else {"success": False, "message": "Supervisor unavailable"})
+
+
+@app.post('/api/manual-order')
+def api_manual_order():
+    if _supervisor is None:
+        return jsonify({"success": False, "message": "Supervisor unavailable"})
+    payload = request.get_json(silent=True) or {}
+    result = _run_coro(_supervisor.place_manual_order(payload))
+    return jsonify(result)
 
 
 def run_control_api(host='127.0.0.1', port=8765):
@@ -220,6 +229,23 @@ class CitadelBot:
         with self.exec_lock:
             self.executor.get_account_value()
 
+    async def place_manual_order(self, payload: dict):
+        try:
+            volume = float(payload.get("volume", 0.01))
+            stop_loss = float(payload.get("stop_loss"))
+            take_profit = float(payload.get("take_profit"))
+        except (TypeError, ValueError):
+            return {"success": False, "message": "Volume, stop loss, and take profit must be valid numbers"}
+
+        with self.exec_lock:
+            return await self.executor.place_manual_market_order(
+                sym=payload.get("symbol"),
+                direction=payload.get("direction"),
+                volume=volume,
+                stop_loss=stop_loss,
+                take_profit=take_profit,
+            )
+
     # ------------------------------------------------------------------
     async def _process_instrument(self, sym: str, tick: int):
         # v2.2: tick the cooldown counter
@@ -230,31 +256,49 @@ class CitadelBot:
         if rt_data is None or rt_data.empty:
             return
 
-        # 2. Push to buffer; get delayed snapshot
+        # 2. Push to buffer so calibration/history stays warm.
         self.buffer.push(sym, rt_data)
         delayed_data = self.buffer.get_delayed(sym)
         if delayed_data is None or len(delayed_data) < 200:
             log.debug("[%s] Buffer warming up (%s bars)...", sym, 0 if delayed_data is None else len(delayed_data))
             return
 
-        # 3. Technical analysis on DELAYED data → prediction
-        ta_result = self.analyzer.analyze(sym, delayed_data)
-        prediction = self.predictor.predict(sym, ta_result, delayed_data)
+        if len(rt_data) < 200:
+            log.debug("[%s] Real-time data warming up (%s bars)...", sym, len(rt_data))
+            return
 
-        # 4. Compare prediction to REAL-TIME situation → delta
-        delta = self.signals.compute_delta(sym, prediction, rt_data)
+        # 3. Technical analysis on current data -> prediction.
+        # The prediction is stored and confirmed only after later bars arrive.
+        ta_result = self.analyzer.analyze(sym, rt_data)
+        prediction = self.predictor.predict(sym, ta_result, rt_data)
+        self.signals.store_prediction(sym, prediction)
 
-        # 5. Generate trade signal if delta confirms
-        signal_out = self.signals.generate(sym, prediction, delta, rt_data)
+        confirmation = self.signals.confirm_prediction(sym, rt_data)
+        if confirmation is None:
+            self.signal_logger.log_signal(
+                sym=sym,
+                ta_result=ta_result,
+                prediction=prediction,
+                delta=None,
+                signal=None,
+                rejection_gate="PENDING_CONFIRMATION",
+            )
+            return
+
+        confirmed_prediction, delta = confirmation
+        confirmed_ta = confirmed_prediction.ta or ta_result
+
+        # 4. Generate trade signal only if post-prediction momentum confirms.
+        signal_out = self.signals.generate(sym, confirmed_prediction, delta, rt_data)
 
         # v2.2: determine rejection gate for signal logging
         rejection_gate = ""
         if signal_out is None:
-            if ta_result.vol_regime == "EXTREME":
+            if confirmed_ta.vol_regime == "EXTREME":
                 rejection_gate = "VOL_REGIME_EXTREME"
-            elif prediction.confidence < self.config.min_confidence:
+            elif confirmed_prediction.confidence < self.config.min_confidence:
                 rejection_gate = "CONFIDENCE"
-            elif prediction.direction == 0:
+            elif confirmed_prediction.direction == 0:
                 rejection_gate = "FLAT_DIRECTION"
             elif not delta.aligned:
                 rejection_gate = "DELTA_NOT_ALIGNED"
@@ -266,8 +310,8 @@ class CitadelBot:
         # v2.2: log every signal attempt
         self.signal_logger.log_signal(
             sym=sym,
-            ta_result=ta_result,
-            prediction=prediction,
+            ta_result=confirmed_ta,
+            prediction=confirmed_prediction,
             delta=delta,
             signal=signal_out,
             rejection_gate=rejection_gate,
@@ -397,6 +441,15 @@ class BotSupervisor:
             "message": "Configuration reloaded",
             "instruments": self.config.instruments,
         }
+
+    async def place_manual_order(self, payload: dict):
+        if not self.bot or not self.task or self.task.done():
+            return {"success": False, "message": "Bot must be running before placing a manual test order"}
+        try:
+            return await self.bot.place_manual_order(payload)
+        except Exception as exc:
+            log.error("Manual order failed: %s", exc, exc_info=True)
+            return {"success": False, "message": str(exc)}
 
     def status(self):
         running = bool(self.task and not self.task.done())
@@ -613,6 +666,35 @@ async def main():
             dashboard_process.terminate()
 
 
+def _attach_metaapi_event_logging(connection, enabled: bool = True):
+    """Monkey-patch MetaApi callbacks to log raw streaming events for diagnostics."""
+    if not enabled or connection is None:
+        return
+
+    event_names = [
+        "on_connected",
+        "on_disconnected",
+        "on_broker_connection_status_changed",
+        "on_account_information_updated",
+        "on_positions_updated",
+        "on_pending_orders_updated",
+        "on_pending_order_updated",
+        "on_symbol_price_updated",
+        "on_synchronization_started",
+    ]
+
+    for event_name in event_names:
+        original = getattr(connection, event_name, None)
+        if not callable(original):
+            continue
+
+        async def _wrap(*args, event_name=event_name, original=original, **kwargs):
+            log.info("[MetaApi] event=%s args=%s kwargs=%s", event_name, args, kwargs)
+            return await original(*args, **kwargs)
+
+        setattr(connection, event_name, _wrap)
+
+
 async def create_metaapi_connection(config: BotConfig):
     """Create and synchronize a MetaApi streaming connection."""
     config.validate_metaapi()
@@ -625,6 +707,9 @@ async def create_metaapi_connection(config: BotConfig):
         api = MetaApi(token=config.metaapi_token)
     account = await api.metatrader_account_api.get_account(config.metaapi_account_id)
     connection = account.get_streaming_connection()
+    _attach_metaapi_event_logging(connection, enabled=config.log_metaapi_messages)
+    log.info("[MetaApi] account_id=%s account_type=%s connection=%s",
+             config.metaapi_account_id, type(account).__name__, type(connection).__name__)
     await connection.connect()
     print("Waiting for SDK to synchronize...")
     # Retry synchronization with exponential backoff to handle intermittent timeouts
@@ -633,6 +718,12 @@ async def create_metaapi_connection(config: BotConfig):
     for attempt in range(max_retries):
         try:
             await connection.wait_synchronized()
+            term_state = getattr(connection, "terminal_state", None)
+            log.info("[MetaApi] synchronized account_id=%s connected=%s broker_connected=%s account_info=%s",
+                     config.metaapi_account_id,
+                     getattr(term_state, "connected", None),
+                     getattr(term_state, "connected_to_broker", None),
+                     getattr(term_state, "account_information", None))
             break
         except Exception as sync_error:
             if attempt == max_retries - 1:

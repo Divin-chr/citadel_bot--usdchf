@@ -1,0 +1,331 @@
+10:36:58 | INFO     | main           | Starting dashboard on port 8501
+10:37:00 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+10:37:10 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+10:38:10 | WARNING  | main           | ⚠️  Database initialization failed, continuing with CSV fallbacks: 
+10:38:10 | INFO     | main           | ============================================================
+10:38:10 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+10:38:10 | INFO     | main           |   Instruments : US30
+10:38:10 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+10:38:10 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
+10:38:10 | INFO     | main           | ============================================================
+10:38:10 | INFO     | main           | MetaApi connection established.
+10:39:34 | INFO     | main           | Shutting down bot...
+10:39:34 | INFO     | main           | Bot stopped cleanly.
+10:39:39 | WARNING  | dashboard      | Control API unavailable: HTTPConnectionPool(host='127.0.0.1', port=8765): Read timed out. (read timeout=5)
+10:40:19 | INFO     | main           | Signal 2 received — stopping.
+10:40:20 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+10:40:20 | INFO     | main           | Starting dashboard on port 8501
+11:39:07 | INFO     | main           | Starting dashboard on port 8501
+11:39:09 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+11:39:19 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+11:39:33 | INFO     | main           | [SUCCESS] Global database manager initialized
+11:39:36 | INFO     | main           | [SUCCESS] All database components initialized
+11:39:36 | INFO     | main           | ============================================================
+11:39:36 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+11:39:36 | INFO     | main           |   Instruments : US30
+11:39:36 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+11:39:36 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+11:39:36 | INFO     | main           | ============================================================
+11:39:36 | INFO     | main           | MetaApi connection established.
+11:41:25 | INFO     | main           | Signal 2 received — stopping.
+11:41:25 | INFO     | main           | Shutting down bot...
+11:41:25 | INFO     | main           | Database connections closed.
+11:41:25 | INFO     | main           | Bot stopped cleanly.
+11:41:26 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+11:41:26 | INFO     | main           | Starting dashboard on port 8501
+11:41:45 | INFO     | main           | Signal 2 received — stopping.
+11:41:45 | INFO     | main           | Shutting down bot...
+11:41:45 | INFO     | main           | Database connections closed.
+11:41:45 | INFO     | main           | Bot stopped cleanly.
+11:41:46 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+11:41:46 | INFO     | main           | Starting dashboard on port 8501
+12:51:15 | INFO     | main           | Starting dashboard on port 8501
+12:51:17 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+12:51:23 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+12:51:37 | INFO     | main           | [SUCCESS] Global database manager initialized
+12:51:40 | INFO     | main           | [SUCCESS] All database components initialized
+12:51:40 | INFO     | main           | ============================================================
+12:51:40 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+12:51:40 | INFO     | main           |   Instruments : US30
+12:51:40 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+12:51:40 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+12:51:40 | INFO     | main           | ============================================================
+12:51:40 | INFO     | main           | MetaApi connection established.
+12:53:09 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+12:55:03 | INFO     | main           | Buffer optimal delay: {'US30': 16} min per instrument
+12:55:03 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+13:07:54 | INFO     | main           | Shutting down bot...
+13:07:54 | INFO     | main           | Database connections closed.
+13:07:54 | INFO     | main           | Bot stopped cleanly.
+13:07:59 | WARNING  | dashboard      | Control API unavailable: HTTPConnectionPool(host='127.0.0.1', port=8765): Read timed out. (read timeout=5)
+13:12:44 | INFO     | main           | Starting dashboard on port 8501
+13:12:46 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+13:12:53 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+13:13:06 | INFO     | main           | [SUCCESS] Global database manager initialized
+13:13:09 | INFO     | main           | [SUCCESS] All database components initialized
+13:13:09 | INFO     | main           | ============================================================
+13:13:09 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+13:13:09 | INFO     | main           |   Instruments : US30
+13:13:09 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+13:13:09 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+13:13:09 | INFO     | main           | ============================================================
+13:13:09 | INFO     | main           | MetaApi connection established.
+13:14:53 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+13:21:01 | INFO     | main           | Buffer optimal delay: {'US30': 16} min per instrument
+13:21:01 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+13:36:41 | INFO     | main           | Shutting down bot...
+13:36:46 | WARNING  | dashboard      | Control API unavailable: HTTPConnectionPool(host='127.0.0.1', port=8765): Read timed out. (read timeout=5)
+13:38:38 | INFO     | main           | Starting dashboard on port 8501
+13:38:39 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+13:38:45 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+13:38:58 | INFO     | main           | [SUCCESS] Global database manager initialized
+13:39:01 | INFO     | main           | [SUCCESS] All database components initialized
+13:39:01 | INFO     | main           | ============================================================
+13:39:01 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+13:39:01 | INFO     | main           |   Instruments : US30
+13:39:01 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+13:39:01 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+13:39:01 | INFO     | main           | ============================================================
+13:39:01 | INFO     | main           | MetaApi connection established.
+13:40:19 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+13:41:38 | INFO     | main           | Buffer optimal delay: {'US30': 16} min per instrument
+13:41:38 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+13:47:24 | INFO     | main           | Signal 2 received — stopping.
+13:47:24 | INFO     | main           | Shutting down bot...
+13:47:25 | INFO     | main           | Database connections closed.
+13:47:25 | INFO     | main           | Bot stopped cleanly.
+13:47:26 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+13:47:26 | INFO     | main           | Starting dashboard on port 8501
+13:47:57 | INFO     | main           | Signal 2 received — stopping.
+13:47:58 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+13:47:58 | INFO     | main           | Starting dashboard on port 8501
+13:49:02 | INFO     | main           | Starting dashboard on port 8501
+13:49:05 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+13:49:13 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+13:49:17 | INFO     | main           | Signal 2 received — stopping.
+13:49:17 | INFO     | main           | Shutting down bot...
+13:49:17 | INFO     | main           | Bot stopped cleanly.
+13:49:17 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+13:49:17 | INFO     | main           | Starting dashboard on port 8501
+13:49:26 | INFO     | main           | [SUCCESS] Global database manager initialized
+13:49:29 | INFO     | main           | [SUCCESS] All database components initialized
+13:49:29 | INFO     | main           | ============================================================
+13:49:29 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+13:49:29 | INFO     | main           |   Instruments : US30
+13:49:29 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+13:49:29 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+13:49:29 | INFO     | main           | ============================================================
+13:49:29 | INFO     | main           | MetaApi connection established.
+13:49:37 | INFO     | main           | Shutting down bot...
+13:49:37 | INFO     | main           | Database connections closed.
+13:49:37 | INFO     | main           | Bot stopped cleanly.
+13:50:35 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+13:50:40 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+13:50:54 | INFO     | main           | [SUCCESS] Global database manager initialized
+13:50:56 | INFO     | main           | [SUCCESS] All database components initialized
+13:50:56 | INFO     | main           | ============================================================
+13:50:56 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+13:50:56 | INFO     | main           |   Instruments : US30
+13:50:56 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+13:50:56 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+13:50:56 | INFO     | main           | ============================================================
+13:50:56 | INFO     | main           | MetaApi connection established.
+13:52:07 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+13:53:21 | INFO     | main           | Buffer optimal delay: {'US30': 16} min per instrument
+13:53:21 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+13:55:15 | INFO     | main           | Signal 2 received — stopping.
+13:55:15 | INFO     | main           | Shutting down bot...
+13:55:15 | INFO     | main           | Database connections closed.
+13:55:15 | INFO     | main           | Bot stopped cleanly.
+13:55:16 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+13:55:16 | INFO     | main           | Starting dashboard on port 8501
+13:59:26 | INFO     | main           | Starting dashboard on port 8501
+13:59:29 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+13:59:36 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+13:59:50 | INFO     | main           | [SUCCESS] Global database manager initialized
+13:59:53 | INFO     | main           | [SUCCESS] All database components initialized
+13:59:53 | INFO     | main           | ============================================================
+13:59:53 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+13:59:53 | INFO     | main           |   Instruments : US30
+13:59:53 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+13:59:53 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+13:59:53 | INFO     | main           | ============================================================
+13:59:53 | INFO     | main           | MetaApi connection established.
+14:00:11 | INFO     | main           | Signal 2 received — stopping.
+14:00:11 | INFO     | main           | Shutting down bot...
+14:00:12 | INFO     | main           | Database connections closed.
+14:00:12 | INFO     | main           | Bot stopped cleanly.
+14:00:13 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+14:00:13 | INFO     | main           | Starting dashboard on port 8501
+14:00:37 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+14:00:45 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+14:00:59 | INFO     | main           | [SUCCESS] Global database manager initialized
+14:01:01 | INFO     | main           | [SUCCESS] All database components initialized
+14:01:01 | INFO     | main           | ============================================================
+14:01:01 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+14:01:01 | INFO     | main           |   Instruments : US30
+14:01:01 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+14:01:01 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+14:01:01 | INFO     | main           | ============================================================
+14:01:01 | INFO     | main           | MetaApi connection established.
+14:04:19 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+14:06:02 | INFO     | main           | Buffer optimal delay: {'US30': 16} min per instrument
+14:06:02 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+14:16:41 | INFO     | main           | Starting dashboard on port 8501
+14:16:42 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+14:16:48 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4691.95, 'equity': 4691.95, 'margin': 0, 'freeMargin': 4691.95, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+14:17:01 | INFO     | main           | [SUCCESS] Global database manager initialized
+14:17:04 | INFO     | main           | [SUCCESS] All database components initialized
+14:17:04 | INFO     | main           | ============================================================
+14:17:04 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+14:17:04 | INFO     | main           |   Instruments : US30
+14:17:04 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+14:17:04 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+14:17:04 | INFO     | main           | ============================================================
+14:17:04 | INFO     | main           | MetaApi connection established.
+14:17:04 | INFO     | execution      | Trade ledger database ready
+14:17:04 | INFO     | execution      | MetaApi execution connected.
+14:19:09 | INFO     | execution      | [MetaApi] submit_order sym=US30 direction=LONG volume=0.010000 sl=51000.00000 tp=51300.00000 options={'comment': 'citadel', 'clientId': 'CT_US30_121909'}
+14:19:13 | INFO     | execution      | [MetaApi] order_result sym=US30 result={'stringCode': 'TRADE_RETCODE_DONE', 'numericCode': 10009, 'message': 'Request completed', 'orderId': '180286172', 'positionId': '180286172', 'tradeExecutionTime': datetime.datetime(2026, 6, 8, 15, 19, 12, 234000, tzinfo=datetime.timezone.utc), 'tradeStartTime': datetime.datetime(2026, 6, 8, 12, 19, 11, 101000, tzinfo=datetime.timezone.utc)}
+14:19:14 | ERROR    | execution      | [US30] Failed to log trade to database: new row for relation "trade_ledger" violates check constraint "trade_ledger_event_type_check"
+DETAIL:  Failing row contains (1, 2026-06-08 12:19:13.148246+00, MANUAL_ENTRY, live, 1, 180286172, 180286172, LONG, 0.0100, 0.0100, null, null, null, TRADE_RETCODE_DONE, Manual MetaApi market order submitted through bot execution engi..., 2026-06-08 12:19:13.519109+00).
+14:19:23 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+14:20:47 | INFO     | main           | Buffer optimal delay: {'US30': 16} min per instrument
+14:20:47 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+14:22:50 | ERROR    | main           | Main loop error: no running event loop
+Traceback (most recent call last):
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\main.py", line 213, in _main_loop
+    await asyncio.get_event_loop().run_in_executor(
+        None, self._sync_account_with_lock
+    )
+  File "C:\Users\HP\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "C:\Users\HP\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\main.py", line 230, in _sync_account_with_lock
+    self.executor.get_account_value()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\execution_engine.py", line 262, in get_account_value
+    self._sync_positions_and_pnl()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\execution_engine.py", line 326, in _sync_positions_and_pnl
+    self._append_ledger_row(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        event_type="POSITION_CLOSED",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<10 lines>...
+        note=f"Position closed, opened_at={state.get('opened_at_utc', '')}, pnl unavailable from terminal state",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\execution_engine.py", line 562, in _append_ledger_row
+    self._create_background_task(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        lambda trade_data=trade_data, sym=sym: self._log_trade_to_database(trade_data, sym),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        f"trade_log_{sym}"
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\execution_engine.py", line 593, in _create_background_task
+    asyncio.create_task(_task_wrapper())
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\tasks.py", line 394, in create_task
+    loop = events.get_running_loop()
+RuntimeError: no running event loop
+14:27:35 | INFO     | main           | Shutting down bot...
+14:27:35 | INFO     | execution      | MetaApi execution disconnected.
+14:27:35 | INFO     | main           | Database connections closed.
+14:27:35 | INFO     | main           | Bot stopped cleanly.
+14:28:06 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+14:28:14 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4693.48, 'equity': 4693.48, 'margin': 0, 'freeMargin': 4693.48, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0, 'accountCurrencyExchangeRate': 1, 'marginLevel': None}
+14:28:28 | INFO     | main           | [SUCCESS] Global database manager initialized
+14:28:30 | INFO     | main           | [SUCCESS] All database components initialized
+14:28:30 | INFO     | main           | ============================================================
+14:28:30 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+14:28:30 | INFO     | main           |   Instruments : US30
+14:28:30 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+14:28:30 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+14:28:30 | INFO     | main           | ============================================================
+14:28:30 | INFO     | main           | MetaApi connection established.
+14:28:31 | INFO     | execution      | Trade ledger database ready
+14:28:31 | INFO     | execution      | MetaApi execution connected.
+14:32:19 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+14:33:13 | ERROR    | main           | Supervised bot stopped with error: unsupported operand type(s) for -: 'decimal.Decimal' and 'float'
+Traceback (most recent call last):
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\main.py", line 391, in _run
+    await self.bot.start()
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\main.py", line 172, in start
+    await self.buffer.calibrate(self.pipeline)
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\buffer_engine.py", line 187, in calibrate
+    best_delay, best_sharpe, p_value, diagnostics = await self._rolling_walk_forward(sym, df)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\buffer_engine.py", line 266, in _rolling_walk_forward
+    sharpe = self._compute_sharpe_for_delay(train_closes, delay)
+  File "C:\Users\HP\OneDrive\Desktop\citadel_bot--us30\citadel_bot\buffer_engine.py", line 331, in _compute_sharpe_for_delay
+    actual_return = closes[i + 1] - closes[i]
+                    ~~~~~~~~~~~~~~^~~~~~~~~~~
+TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'float'
+14:33:13 | INFO     | main           | Shutting down bot...
+14:33:13 | INFO     | execution      | MetaApi execution disconnected.
+14:33:13 | INFO     | main           | Database connections closed.
+14:33:13 | INFO     | main           | Bot stopped cleanly.
+14:41:45 | INFO     | main           | Signal 2 received — stopping.
+14:41:46 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+14:41:46 | INFO     | main           | Starting dashboard on port 8501
+14:43:44 | INFO     | main           | Starting dashboard on port 8501
+14:43:46 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+14:44:05 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4693.48, 'equity': 4693.48, 'margin': 0, 'freeMargin': 4693.48, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
+14:44:19 | INFO     | main           | [SUCCESS] Global database manager initialized
+14:44:21 | INFO     | buffer         | [US30] Loaded saved delay from database: 16 min
+14:44:21 | INFO     | buffer         | ✅ Buffer engine database ready
+14:44:22 | INFO     | main           | [SUCCESS] All database components initialized
+14:44:22 | INFO     | main           | ============================================================
+14:44:22 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  LIVE MODE
+14:44:22 | INFO     | main           |   Instruments : US30
+14:44:22 | INFO     | main           |   MetaApi account: 36a6475e-01db-4db1-9e85-bff0eb84a790
+14:44:22 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Enabled
+14:44:22 | INFO     | main           | ============================================================
+14:44:22 | INFO     | main           | MetaApi connection established.
+14:44:22 | INFO     | execution      | Trade ledger database ready
+14:44:22 | INFO     | execution      | MetaApi execution connected.
+14:44:23 | INFO     | pipeline       | ✅ Database available for data persistence
+14:45:03 | ERROR    | pipeline       | [US30] MetaApi refresh error: Service Temporarily Unavailable. Request URL: https://mt-market-data-client-api-v1.london.agiliumtrade.ai/users/current/accounts/36a6475e-01db-4db1-9e85-bff0eb84a790/historical-market-data/symbols/US30/timeframes/1m/candles?startTime=2026-06-08T04%3A04%3A26.349Z&limit=400
+14:45:03 | INFO     | pipeline       | [US30] History loaded: 4035 bars
+14:45:03 | INFO     | main           | Running buffer auto-calibration (this takes ~60 s)...
+14:45:41 | ERROR    | pipeline       | [US30] MetaApi refresh error: Service Temporarily Unavailable. Request URL: https://mt-market-data-client-api-v1.london.agiliumtrade.ai/users/current/accounts/36a6475e-01db-4db1-9e85-bff0eb84a790/historical-market-data/symbols/US30/timeframes/1m/candles?startTime=2026-06-08T04%3A05%3A03.504Z&limit=400
+14:45:41 | INFO     | buffer         | [US30] Calibration → optimal delay=16 min | Sharpe=11.543 | p=0.030 (significant)
+14:45:43 | INFO     | buffer         | ✅ Saved buffer calibration to database
+14:45:43 | INFO     | main           | Buffer optimal delay: {'US30': 16} min per instrument
+14:45:43 | INFO     | main           | Bot running. Press Ctrl+C to stop.
+14:45:45 | WARNING  | main           | MetaApi connection is stale for 2 checks. Reconnecting...
+14:46:21 | ERROR    | pipeline       | [US30] MetaApi refresh error: Service Temporarily Unavailable. Request URL: https://mt-market-data-client-api-v1.london.agiliumtrade.ai/users/current/accounts/36a6475e-01db-4db1-9e85-bff0eb84a790/historical-market-data/symbols/US30/timeframes/1m/candles?startTime=2026-06-08T04%3A05%3A43.973Z&limit=400
+14:47:29 | ERROR    | pipeline       | [US30] MetaApi refresh error: Service Temporarily Unavailable. Request URL: https://mt-market-data-client-api-v1.london.agiliumtrade.ai/users/current/accounts/36a6475e-01db-4db1-9e85-bff0eb84a790/historical-market-data/symbols/US30/timeframes/1m/candles?startTime=2026-06-08T04%3A06%3A51.475Z&limit=400
+14:48:37 | ERROR    | pipeline       | [US30] MetaApi refresh error: Service Temporarily Unavailable. Request URL: https://mt-market-data-client-api-v1.london.agiliumtrade.ai/users/current/accounts/36a6475e-01db-4db1-9e85-bff0eb84a790/historical-market-data/symbols/US30/timeframes/1m/candles?startTime=2026-06-08T04%3A07%3A59.498Z&limit=400
+14:49:45 | ERROR    | pipeline       | [US30] MetaApi refresh error: Service Temporarily Unavailable. Request URL: https://mt-market-data-client-api-v1.london.agiliumtrade.ai/users/current/accounts/36a6475e-01db-4db1-9e85-bff0eb84a790/historical-market-data/symbols/US30/timeframes/1m/candles?startTime=2026-06-08T04%3A09%3A07.816Z&limit=400
+14:50:54 | ERROR    | pipeline       | [US30] MetaApi refresh error: Service Temporarily Unavailable. Request URL: https://mt-market-data-client-api-v1.london.agiliumtrade.ai/users/current/accounts/36a6475e-01db-4db1-9e85-bff0eb84a790/historical-market-data/symbols/US30/timeframes/1m/candles?startTime=2026-06-08T04%3A10%3A15.530Z&limit=400
+14:51:06 | INFO     | main           | Signal 2 received — stopping.
+14:51:06 | INFO     | main           | Shutting down bot...
+14:51:06 | INFO     | execution      | MetaApi execution disconnected.
+14:51:06 | INFO     | main           | Database connections closed.
+14:51:06 | INFO     | main           | Bot stopped cleanly.
+14:51:07 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+14:51:07 | INFO     | main           | Starting dashboard on port 8501
+14:51:38 | INFO     | main           | [MetaApi] account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 account_type=MetatraderAccount connection=StreamingMetaApiConnectionInstance
+14:56:39 | WARNING  | main           | MetaApi synchronization attempt 1/5 failed: Timed out waiting for MetaApi to synchronize to MetaTrader account 36a6475e-01db-4db1-9e85-bff0eb84a790, synchronization id None. Retrying in 2 seconds...
+14:58:25 | INFO     | main           | Signal 2 received — stopping.
+14:58:25 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+14:58:25 | INFO     | main           | Starting dashboard on port 8501
+14:58:30 | INFO     | main           | Signal 2 received — stopping.
+14:58:31 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+14:58:31 | INFO     | main           | Starting dashboard on port 8501
+14:58:32 | INFO     | main           | Signal 2 received — stopping.
+14:58:33 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+14:58:33 | INFO     | main           | Starting dashboard on port 8501
+14:58:34 | INFO     | main           | Signal 2 received — stopping.
+14:58:36 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+14:58:36 | INFO     | main           | Starting dashboard on port 8501
+14:58:36 | INFO     | main           | Signal 2 received — stopping.
+14:58:38 | WARNING  | main           | Dashboard exited with code 1; restarting it.
+14:58:38 | INFO     | main           | Starting dashboard on port 8501
+14:58:43 | INFO     | main           | [MetaApi] synchronized account_id=36a6475e-01db-4db1-9e85-bff0eb84a790 connected=True broker_connected=True account_info={'platform': 'mt5', 'type': 'ACCOUNT_TRADE_MODE_REAL', 'broker': 'FundedNext Ltd', 'currency': 'USD', 'currencyDigits': 2, 'server': 'FundedNext-Server', 'balance': 4693.48, 'equity': 4693.48, 'margin': 0, 'freeMargin': 4693.48, 'leverage': 100, 'tradeAllowed': True, 'investorMode': False, 'marginMode': 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', 'name': 'FundedNext-EVA P1- Turamyeyezu Aime Christian Divin TELIMBERE', 'login': 11604742, 'credit': 0}
