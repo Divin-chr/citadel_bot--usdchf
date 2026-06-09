@@ -29,7 +29,7 @@ instrument_exchange: {}
 instrument_multiplier: {}
 instrument_session: {}
 instruments:
-- US30
+- USDCHF
 kelly_cap_pct: 0.02
 kelly_fraction: 0.5
 kelly_lookback_trades: 50
