@@ -19,7 +19,6 @@ log = get_logger("pipeline")
 SUPPORTED_TIMEFRAMES = [
     ("1m", "m1"),
     ("5m", "m5"),
-    ("1h", "h1"),
     ("1d", "d1"),
     ("1w", "w1"),
 ]
@@ -327,6 +326,9 @@ class DataPipeline:
             derived_m5 = self._derive_timeframe_from_m1(merged, "5min")
             if derived_m5 is not None and not derived_m5.empty:
                 self._persist_symbol_data(sym, derived_m5, "m5")
+            derived_h1 = self._derive_timeframe_from_m1(merged, "1h")
+            if derived_h1 is not None and not derived_h1.empty:
+                self._persist_symbol_data(sym, derived_h1, "h1")
 
         if self._db_available and not new_filtered.empty:
             self._create_background_task(
@@ -349,7 +351,7 @@ class DataPipeline:
             })
             aggregated = aggregated.dropna(subset=["open", "high", "low", "close"])
 
-            # Keep only completed bars. The current partial 5m bar can distort TA/logs.
+            # Keep only completed bars. Current partial higher-timeframe bars can distort TA/logs.
             latest_m1 = source.index[-1]
             if latest_m1.tzinfo is None:
                 latest_m1 = latest_m1.tz_localize("UTC")
