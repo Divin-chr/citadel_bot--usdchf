@@ -95,6 +95,8 @@ class TAResult:
     # Volatility regime
     vol_regime: str = "NORMAL"          # LOW / NORMAL / HIGH / EXTREME
     vol_percentile: float = 0.5         # ATR percentile over lookback
+    market_regime: str = "UNKNOWN"      # TRENDING / CHOPPY / RANGE / UNKNOWN
+    chop_score: float = 0.0             # 0 clean, 1 very choppy
 
     # Composite
     composite_score: float = 0.5
@@ -133,6 +135,7 @@ class TechnicalAnalyzer:
 
         # v2.2: volatility regime detection
         self._compute_vol_regime(result, high, low, close)
+        self._compute_market_regime(result, high, low, close)
 
         # v2.2: orthogonal group scoring + debiased composite
         self._compute_group_scores(result, c)
@@ -445,6 +448,52 @@ class TechnicalAnalyzer:
             r.vol_regime = "LOW"
         else:
             r.vol_regime = "NORMAL"
+
+    def _compute_market_regime(self, r: TAResult, high: pd.Series,
+                               low: pd.Series, close: pd.Series):
+        """Classify whether recent price action is directional enough to trade."""
+        if len(close) < 40 or r.atr <= 0:
+            return
+
+        window = min(60, len(close) - 1)
+        recent_close = close.tail(window + 1)
+        recent_high = high.tail(window)
+        recent_low = low.tail(window)
+
+        net_move = abs(float(recent_close.iloc[-1] - recent_close.iloc[0]))
+        path = float(recent_close.diff().abs().sum())
+        efficiency = net_move / path if path > 0 else 0.0
+
+        price_range = float(recent_high.max() - recent_low.min())
+        range_atr = price_range / r.atr if r.atr > 0 else 0.0
+
+        ma_fast = recent_close.ewm(span=8, adjust=False).mean()
+        ma_slow = recent_close.ewm(span=21, adjust=False).mean()
+        slope_atr = abs(float(ma_fast.iloc[-1] - ma_slow.iloc[-1])) / r.atr if r.atr > 0 else 0.0
+
+        chop = 0.0
+        if efficiency < 0.18:
+            chop += 0.45
+        elif efficiency < 0.28:
+            chop += 0.25
+        if range_atr < 1.8:
+            chop += 0.30
+        elif range_atr < 2.5:
+            chop += 0.15
+        if slope_atr < 0.20:
+            chop += 0.25
+        elif slope_atr < 0.35:
+            chop += 0.10
+
+        r.chop_score = float(np.clip(chop, 0.0, 1.0))
+        if r.chop_score >= 0.65:
+            r.market_regime = "CHOPPY"
+        elif range_atr < 2.2 and efficiency < 0.35:
+            r.market_regime = "RANGE"
+        elif efficiency >= 0.35 and slope_atr >= 0.25:
+            r.market_regime = "TRENDING"
+        else:
+            r.market_regime = "UNKNOWN"
 
     # ── Orthogonal group scores (v2.2) ───────────────────────────────
 

@@ -268,6 +268,61 @@ class ExecutionEngine:
             self._check_trailing_stops()
         return self._account_value
 
+    async def persist_terminal_position_prices(self):
+        """Persist live terminal position prices without feeding them into signal logic."""
+        if not self._db_available:
+            return
+
+        positions = self._terminal_positions()
+        if not positions:
+            return
+
+        timestamp_utc = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+        for pos in positions:
+            sym = str(pos.get("symbol") or "").strip().upper()
+            if not sym:
+                continue
+
+            try:
+                current_price = float(pos.get("currentPrice") or 0)
+            except (TypeError, ValueError):
+                continue
+            if current_price <= 0:
+                continue
+
+            try:
+                instrument_id = await db_manager.get_instrument_id(sym)
+                if not instrument_id:
+                    log.warning("[%s] Instrument not found in database, skipping terminal price persistence", sym)
+                    continue
+
+                direction = "BUY" if pos.get("type") == "POSITION_TYPE_BUY" else "SELL"
+                ledger_direction = "LONG" if direction == "BUY" else "SHORT"
+                open_price = self._optional_float(pos.get("openPrice"))
+                volume = self._optional_float(pos.get("volume"))
+                profit = self._optional_float(pos.get("profit"))
+                position_id = self._position_id(pos) or None
+
+                await db_manager.insert_terminal_position_price(
+                    instrument_id=instrument_id,
+                    timestamp_utc=timestamp_utc,
+                    current_price=current_price,
+                    metaapi_account_id=self.config.metaapi_account_id,
+                    position_id=position_id,
+                    direction=ledger_direction,
+                    volume=volume,
+                    open_price=open_price,
+                    profit=profit,
+                )
+                await db_manager.upsert_terminal_position_market_data(
+                    instrument_id=instrument_id,
+                    timestamp_utc=timestamp_utc,
+                    current_price=current_price,
+                    metaapi_account_id=self.config.metaapi_account_id,
+                )
+            except Exception as exc:
+                log.warning("[%s] Failed to persist terminal position price: %s", sym, exc)
+
     async def _send_market_order(
         self, sym: str, direction: str, volume: float, sl: float, tp: float
     ) -> Optional[dict]:
@@ -486,6 +541,15 @@ class ExecutionEngine:
     @staticmethod
     def _position_id(position: dict) -> str:
         return str(position.get("id") or position.get("positionId") or "")
+
+    @staticmethod
+    def _optional_float(value) -> Optional[float]:
+        try:
+            if value is None:
+                return None
+            return float(value)
+        except (TypeError, ValueError):
+            return None
 
     @staticmethod
     def _response_ticket(result: dict) -> str:

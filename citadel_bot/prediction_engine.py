@@ -292,6 +292,14 @@ class SignalGenerator:
                 log.debug("[%s] Signal rejected — EXTREME volatility regime", sym)
                 return None
 
+            max_chop = float(cfg.__dict__.get("max_chop_score", 0.65))
+            if ta.market_regime == "CHOPPY" or ta.chop_score >= max_chop:
+                log.debug(
+                    "[%s] Signal rejected - choppy market regime=%s chop=%.2f >= %.2f",
+                    sym, ta.market_regime, ta.chop_score, max_chop
+                )
+                return None
+
             # Gate 2: confidence
             if pred.confidence < cfg.min_confidence:
                 log.debug("[%s] Signal rejected — confidence %.2f < %.2f",
@@ -333,11 +341,13 @@ class SignalGenerator:
             sl    = c - atr * atr_mult
             tp1   = c + atr * atr_mult * tp1_rr_val
             tp2   = c + atr * atr_mult * tp2_rr_val
+            sl, tp1, tp2 = self._apply_structure_geometry(sym, 1, entry, sl, tp1, tp2, atr, ta)
         else:  # SHORT
             entry = c
             sl    = c + atr * atr_mult
             tp1   = c - atr * atr_mult * tp1_rr_val
             tp2   = c - atr * atr_mult * tp2_rr_val
+            sl, tp1, tp2 = self._apply_structure_geometry(sym, -1, entry, sl, tp1, tp2, atr, ta)
 
         risk_pts   = abs(entry - sl)
         reward_pts = abs(tp2 - entry)
@@ -376,3 +386,62 @@ class SignalGenerator:
 
     def _get_tp2_rr(self, sym: str) -> float:
         return self.config.per_instrument.get(sym, {}).get('tp2_rr', self.config.tp2_rr)
+
+    def _apply_structure_geometry(
+        self,
+        sym: str,
+        direction: int,
+        entry: float,
+        base_sl: float,
+        base_tp1: float,
+        base_tp2: float,
+        atr: float,
+        ta: TAResult,
+    ) -> Tuple[float, float, float]:
+        """Place stops beyond nearby structure and avoid targets through nearby walls."""
+        if atr <= 0 or entry <= 0:
+            return base_sl, base_tp1, base_tp2
+
+        buffer_atr = float(self.config.__dict__.get("structure_buffer_atr", 0.25))
+        max_stop_atr = float(self.config.__dict__.get("max_structure_stop_atr", 3.0))
+        min_target_atr = float(self.config.__dict__.get("min_structure_target_atr", 0.75))
+        buffer = atr * buffer_atr
+
+        sl = base_sl
+        tp1 = base_tp1
+        tp2 = base_tp2
+
+        if direction == 1:
+            support = float(ta.nearest_support or 0.0)
+            resistance = float(ta.nearest_resistance or 0.0)
+            if 0 < support < entry:
+                structured_sl = support - buffer
+                structured_risk = entry - structured_sl
+                if 0 < structured_risk <= atr * max_stop_atr:
+                    sl = min(base_sl, structured_sl)
+
+            if resistance > entry:
+                target_ceiling = resistance - buffer
+                if target_ceiling - entry >= atr * min_target_atr:
+                    tp2 = min(tp2, target_ceiling)
+                    tp1 = min(tp1, entry + (tp2 - entry) * 0.5)
+                else:
+                    log.debug("[%s] Nearby resistance limits upside: entry=%.5f resistance=%.5f", sym, entry, resistance)
+        else:
+            support = float(ta.nearest_support or 0.0)
+            resistance = float(ta.nearest_resistance or 0.0)
+            if resistance > entry:
+                structured_sl = resistance + buffer
+                structured_risk = structured_sl - entry
+                if 0 < structured_risk <= atr * max_stop_atr:
+                    sl = max(base_sl, structured_sl)
+
+            if 0 < support < entry:
+                target_floor = support + buffer
+                if entry - target_floor >= atr * min_target_atr:
+                    tp2 = max(tp2, target_floor)
+                    tp1 = max(tp1, entry - (entry - tp2) * 0.5)
+                else:
+                    log.debug("[%s] Nearby support limits downside: entry=%.5f support=%.5f", sym, entry, support)
+
+        return sl, tp1, tp2

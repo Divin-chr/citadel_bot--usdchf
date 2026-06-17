@@ -283,6 +283,49 @@ class DatabaseManager:
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_market_data_account ON market_data(metaapi_account_id);"
         )
+        data_source_exists = await conn.fetchval("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'market_data'
+                  AND column_name = 'data_source'
+            );
+        """)
+        if not data_source_exists:
+            await conn.execute(
+                "ALTER TABLE market_data ADD COLUMN IF NOT EXISTS data_source VARCHAR(30) NOT NULL DEFAULT 'historical_candles';"
+            )
+        else:
+            await conn.execute("UPDATE market_data SET data_source = 'historical_candles' WHERE data_source IS NULL;")
+            await conn.execute("ALTER TABLE market_data ALTER COLUMN data_source SET DEFAULT 'historical_candles';")
+            await conn.execute("ALTER TABLE market_data ALTER COLUMN data_source SET NOT NULL;")
+
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_market_data_source ON market_data(data_source);"
+        )
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS terminal_position_prices (
+                snapshot_id BIGSERIAL PRIMARY KEY,
+                instrument_id INTEGER NOT NULL REFERENCES instruments(instrument_id),
+                metaapi_account_id VARCHAR(128) NOT NULL DEFAULT '',
+                timestamp_utc TIMESTAMP WITH TIME ZONE NOT NULL,
+                position_id VARCHAR(64),
+                direction VARCHAR(5) CHECK (direction IN ('LONG', 'SHORT')),
+                volume DECIMAL(12,4),
+                open_price DECIMAL(12,5),
+                current_price DECIMAL(12,5) NOT NULL,
+                profit DECIMAL(12,2),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_terminal_position_prices_instrument_time
+            ON terminal_position_prices(instrument_id, timestamp_utc DESC);
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_terminal_position_prices_account
+            ON terminal_position_prices(metaapi_account_id);
+        """)
 
     async def _seed_instruments(self, conn):
         """Seed or repair instrument catalog rows even when schema already exists."""
@@ -389,17 +432,20 @@ class DatabaseManager:
         close_price: float,
         volume: int,
         metaapi_account_id: Optional[str] = None,
+        data_source: str = "historical_candles",
     ):
         """Insert market data bar"""
         account_id = metaapi_account_id or ''
+        source = data_source or "historical_candles"
         async with self.connection() as conn:
             await conn.execute("""
                 INSERT INTO market_data (
-                    instrument_id, timestamp_utc, timeframe,
+                    instrument_id, timestamp_utc, timeframe, data_source,
                     open_price, high_price, low_price, close_price, volume,
                     metaapi_account_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT (instrument_id, timestamp_utc, timeframe, metaapi_account_id) DO UPDATE SET
+                    data_source = EXCLUDED.data_source,
                     open_price = EXCLUDED.open_price,
                     high_price = EXCLUDED.high_price,
                     low_price = EXCLUDED.low_price,
@@ -407,8 +453,70 @@ class DatabaseManager:
                     volume = EXCLUDED.volume
             """,
             instrument_id, timestamp_utc, timeframe,
-            open_price, high_price, low_price, close_price, volume,
+            source, open_price, high_price, low_price, close_price, volume,
             account_id
+            )
+
+    async def insert_terminal_position_price(
+        self,
+        instrument_id: int,
+        timestamp_utc,
+        current_price: float,
+        metaapi_account_id: Optional[str] = None,
+        position_id: Optional[str] = None,
+        direction: Optional[str] = None,
+        volume: Optional[float] = None,
+        open_price: Optional[float] = None,
+        profit: Optional[float] = None,
+    ):
+        """Persist a raw live position price snapshot from MetaApi terminal state."""
+        account_id = metaapi_account_id or ''
+        async with self.connection() as conn:
+            await conn.execute("""
+                INSERT INTO terminal_position_prices (
+                    instrument_id, metaapi_account_id, timestamp_utc,
+                    position_id, direction, volume, open_price, current_price, profit
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            """,
+            instrument_id,
+            account_id,
+            timestamp_utc,
+            position_id,
+            direction,
+            volume,
+            open_price,
+            current_price,
+            profit,
+            )
+
+    async def upsert_terminal_position_market_data(
+        self,
+        instrument_id: int,
+        timestamp_utc,
+        current_price: float,
+        metaapi_account_id: Optional[str] = None,
+    ):
+        """Build a terminal-derived m1 OHLC row without overwriting broker candles."""
+        account_id = metaapi_account_id or ''
+        async with self.connection() as conn:
+            await conn.execute("""
+                INSERT INTO market_data (
+                    instrument_id, timestamp_utc, timeframe, data_source,
+                    open_price, high_price, low_price, close_price, volume,
+                    metaapi_account_id
+                ) VALUES ($1, $2, 'm1', 'terminal_position', $3, $3, $3, $3, 1, $4)
+                ON CONFLICT (instrument_id, timestamp_utc, timeframe, metaapi_account_id) DO UPDATE SET
+                    high_price = GREATEST(market_data.high_price, EXCLUDED.high_price),
+                    low_price = LEAST(market_data.low_price, EXCLUDED.low_price),
+                    close_price = EXCLUDED.close_price,
+                    volume = market_data.volume + 1,
+                    data_source = 'terminal_position'
+                WHERE market_data.data_source = 'terminal_position'
+            """,
+            instrument_id,
+            timestamp_utc,
+            current_price,
+            account_id,
             )
     async def insert_market_data_legacy(
         self,
@@ -445,6 +553,7 @@ class DatabaseManager:
         timeframe: str = 'm1',
         limit: int = 400,
         metaapi_account_id: Optional[str] = None,
+        data_source: Optional[str] = None,
     ) -> Optional[List[Dict]]:
         """Get recent market data for symbol"""
         instrument_id = await self.get_instrument_id(symbol)
@@ -457,9 +566,10 @@ class DatabaseManager:
                     rows = await conn.fetch("""
                         SELECT * FROM market_data
                         WHERE instrument_id = $1 AND timeframe = $2 AND metaapi_account_id = $4
+                          AND ($5::varchar IS NULL OR data_source = $5)
                         ORDER BY timestamp_utc DESC
                         LIMIT $3
-                    """, instrument_id, timeframe, limit, metaapi_account_id)
+                    """, instrument_id, timeframe, limit, metaapi_account_id, data_source)
                 except Exception:
                     rows = await conn.fetch("""
                         SELECT * FROM market_data
@@ -471,9 +581,10 @@ class DatabaseManager:
                 rows = await conn.fetch("""
                     SELECT * FROM market_data
                     WHERE instrument_id = $1 AND timeframe = $2
+                      AND ($4::varchar IS NULL OR data_source = $4)
                     ORDER BY timestamp_utc DESC
                     LIMIT $3
-                """, instrument_id, timeframe, limit)
+                """, instrument_id, timeframe, limit, data_source)
 
             return [dict(row) for row in rows]
     async def get_latest_market_data(

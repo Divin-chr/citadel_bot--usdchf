@@ -34,6 +34,7 @@ CREATE TABLE market_data (
     id BIGSERIAL PRIMARY KEY,
     instrument_id INTEGER NOT NULL REFERENCES instruments(instrument_id),
     metaapi_account_id VARCHAR(128) NOT NULL DEFAULT '',
+    data_source VARCHAR(30) NOT NULL DEFAULT 'historical_candles',
     timestamp_utc TIMESTAMP WITH TIME ZONE NOT NULL,
     timeframe VARCHAR(5) NOT NULL DEFAULT 'm1' CHECK (timeframe IN ('m1', 'm5', 'h1', 'd1', 'w1')),
     open_price DECIMAL(12,5) NOT NULL,
@@ -49,6 +50,26 @@ CREATE TABLE market_data (
 CREATE INDEX idx_market_data_instrument_time ON market_data(instrument_id, timestamp_utc DESC);
 CREATE INDEX idx_market_data_timeframe ON market_data(timeframe);
 CREATE INDEX idx_market_data_account ON market_data(metaapi_account_id);
+CREATE INDEX idx_market_data_source ON market_data(data_source);
+
+CREATE TABLE terminal_position_prices (
+    snapshot_id BIGSERIAL PRIMARY KEY,
+    instrument_id INTEGER NOT NULL REFERENCES instruments(instrument_id),
+    metaapi_account_id VARCHAR(128) NOT NULL DEFAULT '',
+    timestamp_utc TIMESTAMP WITH TIME ZONE NOT NULL,
+    position_id VARCHAR(64),
+    direction VARCHAR(5) CHECK (direction IN ('LONG', 'SHORT')),
+    volume DECIMAL(12,4),
+    open_price DECIMAL(12,5),
+    current_price DECIMAL(12,5) NOT NULL,
+    profit DECIMAL(12,2),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_terminal_position_prices_instrument_time
+    ON terminal_position_prices(instrument_id, timestamp_utc DESC);
+CREATE INDEX idx_terminal_position_prices_account
+    ON terminal_position_prices(metaapi_account_id);
 
 -- =================================================================================
 -- SIGNAL LOGS (Detailed Analysis Data)

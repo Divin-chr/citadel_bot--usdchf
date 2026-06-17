@@ -125,6 +125,7 @@ class DataPipeline:
                 'm1',
                 self._analysis_window_bars,
                 metaapi_account_id=self.config.metaapi_account_id,
+                data_source='historical_candles',
             )
             if not market_data:
                 return None

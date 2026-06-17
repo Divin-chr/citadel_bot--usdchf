@@ -213,6 +213,8 @@ class CitadelBot:
                 await asyncio.get_event_loop().run_in_executor(
                     None, self._sync_account_with_lock
                 )
+                if self._db_initialized:
+                    await self.executor.persist_terminal_position_prices()
 
                 # Process all instruments in parallel
                 tasks = [self._process_instrument(sym, tick) for sym in self.config.instruments]
@@ -254,6 +256,10 @@ class CitadelBot:
         # 1. Pull real-time snapshot
         rt_data = await self.pipeline.get_realtime(sym)
         if rt_data is None or rt_data.empty:
+            return
+        quality_rejection = self._market_data_rejection(sym, rt_data)
+        if quality_rejection:
+            log.warning("[%s] Market data rejected: %s", sym, quality_rejection)
             return
 
         # 2. Push to buffer so calibration/history stays warm.
