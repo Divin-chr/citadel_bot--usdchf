@@ -330,6 +330,10 @@ class DataPipeline:
             derived_h1 = self._derive_timeframe_from_m1(merged, "1h")
             if derived_h1 is not None and not derived_h1.empty:
                 self._persist_symbol_data(sym, derived_h1, "h1")
+            # Daily candles drive RiskManager's correlation cap; keep them fresh.
+            derived_d1 = self._derive_timeframe_from_m1(merged, "1D")
+            if derived_d1 is not None and not derived_d1.empty:
+                self._persist_symbol_data(sym, derived_d1, "d1")
 
         if self._db_available and not new_filtered.empty:
             self._create_background_task(

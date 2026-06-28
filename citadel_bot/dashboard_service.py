@@ -126,24 +126,28 @@ class DashboardService:
             async with self.db.connection() as conn:
                 rows = await conn.fetch("""
                     SELECT
-                        sl.timestamp_utc,
+                        gsl.timestamp_utc,
                         i.symbol,
-                        sl.confidence,
-                        sl.direction,
-                        sl.signal_emitted,
-                        sl.composite_score,
-                        sl.rejection_gate
-                    FROM signal_logs sl
-                    LEFT JOIN instruments i ON sl.instrument_id = i.instrument_id
-                    ORDER BY sl.timestamp_utc DESC
+                        gsl.epsilon,
+                        gsl.regime_position,
+                        gsl.signal_mode,
+                        gsl.direction,
+                        gsl.confidence,
+                        gsl.signal_emitted,
+                        gsl.rejection_gate
+                    FROM grid_signal_logs gsl
+                    LEFT JOIN instruments i ON gsl.instrument_id = i.instrument_id
+                    ORDER BY gsl.timestamp_utc DESC
                     LIMIT $1
                 """, limit)
             return pd.DataFrame([{
                 "Timestamp": row["timestamp_utc"],
                 "Symbol": row["symbol"] or "Unknown",
-                "Direction": row["direction"],
+                "ε": round(float(row["epsilon"] or 0), 6),
+                "Pos": round(float(row["regime_position"] or 0), 3),
+                "Mode": row["signal_mode"] or "",
+                "Direction": row["direction"] or "",
                 "Confidence": round(float(row["confidence"] or 0), 4),
-                "Score": round(float(row["composite_score"] or 0), 4),
                 "Emitted": "Yes" if row["signal_emitted"] else "No",
                 "Gate": row["rejection_gate"] or "",
             } for row in rows])
@@ -202,7 +206,7 @@ class DashboardService:
                         COUNT(*) AS total_signals,
                         COUNT(*) FILTER (WHERE signal_emitted = true) AS emitted_signals,
                         AVG(confidence) AS avg_confidence
-                    FROM signal_logs
+                    FROM grid_signal_logs
                     WHERE timestamp_utc > NOW() - INTERVAL '24 hours'
                 """)
             return {

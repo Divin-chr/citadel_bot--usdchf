@@ -18,15 +18,12 @@ from metaapi_cloud_sdk import MetaApi
 
 from citadel_bot.config import BotConfig
 from citadel_bot.data_pipeline import DataPipeline
-from citadel_bot.buffer_engine import AdaptiveBuffer
-from citadel_bot.technical_analysis import TechnicalAnalyzer
-from citadel_bot.prediction_engine import PredictionEngine
-from citadel_bot.signal_generator import SignalGenerator
+from citadel_bot.grid_engine import GridCalibrator, GridSignalGenerator, EmitterPerformanceTracker
 from citadel_bot.execution_engine import ExecutionEngine
 from citadel_bot.risk_manager import RiskManager
 from citadel_bot.database.database_manager import init_database, close_database
 from citadel_bot.signal_logger import SignalLogger
-from citadel_bot.utils.logger import setup_logger
+from citadel_bot.utils.logger import setup_logger, Timer
 
 log = setup_logger("main")
 
@@ -102,8 +99,13 @@ def keep_alive(port=None, host='0.0.0.0'):
 class CitadelBot:
     """
     Master controller. Wires together:
-      DataPipeline → AdaptiveBuffer → TechnicalAnalyzer →
-      PredictionEngine → SignalGenerator → RiskManager → ExecutionEngine
+      DataPipeline → GridCalibrator → GridSignalGenerator →
+      RiskManager → ExecutionEngine
+
+    Strategy: Teeple (2025) coarse-Bayesian support/resistance. Each
+    instrument has an empirically-calibrated grid spacing ε; price location
+    relative to the nearest grid lines produces mean-reversion and
+    range-break trade signals.
     """
 
     def __init__(self, config: BotConfig, account, connection):
@@ -113,23 +115,23 @@ class CitadelBot:
         self.running = False
 
         # Core modules
-        self.pipeline   = DataPipeline(config, account, connection)
-        self.buffer     = AdaptiveBuffer(config)
-        self.analyzer   = TechnicalAnalyzer(config)
-        self.predictor  = PredictionEngine(config)
-        self.signals    = SignalGenerator(config)
-        self.risk       = RiskManager(config)
-        self.executor   = ExecutionEngine(config, account, connection)
+        self.pipeline         = DataPipeline(config, account, connection)
+        self.grid_calibrator  = GridCalibrator(config)
+        self.emitter_tracker  = EmitterPerformanceTracker(config)
+        self.signals          = GridSignalGenerator(config, self.grid_calibrator, self.emitter_tracker)
+        self.risk             = RiskManager(config)
+        self.executor         = ExecutionEngine(config, account, connection)
         self.executor.attach_risk_manager(self.risk)
+        self.executor.attach_emitter_tracker(self.emitter_tracker)
 
-        # v2.2: signal quality logger
+        # Signal quality logger (grid schema)
         self.signal_logger = SignalLogger(config)
 
         # Database initialization flag
         self._db_initialized = False
 
-        # Locks for thread-safe access to shared resources
-        # Use threading.Lock() since MT5 calls run in executor threads
+        # Locks for thread-safe access to shared resources (MT5 calls run in
+        # executor threads)
         self.risk_lock = threading.Lock()
         self.exec_lock = threading.Lock()
 
@@ -149,7 +151,7 @@ class CitadelBot:
             await self._initialize_database_components()
 
         log.info("=" * 60)
-        log.info("  CITADEL QUANT BOT  |  v2.2  |  %s MODE", self.config.mode.upper())
+        log.info("  CITADEL QUANT BOT  |  grid strategy  |  %s MODE", self.config.mode.upper())
         log.info("  Instruments : %s", ", ".join(self.config.instruments))
         log.info("  MetaApi account: %s", self.config.metaapi_account_id or "<not configured>")
         log.info("  Features    : Kelly=%s | TrailingStop=%s | SignalLog=%s | Database=%s",
@@ -166,11 +168,13 @@ class CitadelBot:
         # Start real-time data feed
         await self.pipeline.start_feeds()
 
-        # Calibrate buffer delay after history is loaded.
-        if self.config.auto_calibrate:
-            log.info("Running buffer auto-calibration (this takes ~60 s)...")
-            await self.buffer.calibrate(self.pipeline)
-            log.info("Buffer optimal delay: %s min per instrument", self.buffer.optimal_delays)
+        # Calibrate grid spacing ε per instrument once warmup history is loaded.
+        log.info("Running grid auto-calibration (Donaldson-Kim Cov^mod test)...")
+        with Timer(log, "grid_calibrate_all", threshold_ms=2000):
+            await self.grid_calibrator.calibrate(self.pipeline)
+        # Recalibration clears any prior regime-break suspensions for a fresh start.
+        self.signals.reset_suspensions()
+        log.info("Grid spacings eps: %s", self.grid_calibrator.epsilons)
 
         # Main loop
         await self._main_loop()
@@ -190,7 +194,7 @@ class CitadelBot:
             log.info("[SUCCESS] Global database manager initialized")
 
             # Initialize component-specific database connections
-            await self.buffer.initialize_db()
+            await self.grid_calibrator.initialize_db()
             await self.signal_logger.initialize_db()
 
             self._db_initialized = True
@@ -206,6 +210,11 @@ class CitadelBot:
         while self.running:
             try:
                 tick += 1
+
+                # Recalibrate epsilon when the configured window has elapsed.
+                # Suspensions are cleared so previously-suspended instruments get
+                # another shot under the fresh ε.
+                await self._maybe_recalibrate()
 
                 # Ensure MT5 account / position state is synced each loop.
                 # This writes closed-trade ledger rows even when no new signal is generated.
@@ -231,6 +240,27 @@ class CitadelBot:
         with self.exec_lock:
             self.executor.get_account_value()
 
+    async def _maybe_recalibrate(self):
+        """Re-run grid calibration when grid_recalibration_days has elapsed."""
+        window_days = float(getattr(self.config, "grid_recalibration_days", 0) or 0)
+        if window_days <= 0:
+            return
+        last = self.grid_calibrator.last_calibration_at
+        if last is None:
+            return  # Initial calibration in start() handles the first run.
+        age_sec = (datetime.now(timezone.utc) - last).total_seconds()
+        if age_sec < window_days * 86400:
+            return
+
+        log.info(
+            "Periodic recalibration window reached (age=%.1fd >= %.1fd). Re-running grid calibration...",
+            age_sec / 86400, window_days,
+        )
+        with Timer(log, "grid_recalibrate_periodic", threshold_ms=2000):
+            await self.grid_calibrator.calibrate(self.pipeline)
+        self.signals.reset_suspensions()
+        log.info("Grid spacings eps (post-recalibration): %s", self.grid_calibrator.epsilons)
+
     async def place_manual_order(self, payload: dict):
         try:
             volume = float(payload.get("volume", 0.01))
@@ -250,97 +280,61 @@ class CitadelBot:
 
     # ------------------------------------------------------------------
     async def _process_instrument(self, sym: str, tick: int):
-        # v2.2: tick the cooldown counter
-        self.signals.tick(sym)
+        with Timer(log, f"process_instrument[{sym}]", threshold_ms=2000):
+            # Tick the cooldown counter on the signal generator
+            self.signals.tick(sym)
 
-        # 1. Pull real-time snapshot
-        rt_data = await self.pipeline.get_realtime(sym)
-        if rt_data is None or rt_data.empty:
-            return
-        quality_rejection = self._market_data_rejection(sym, rt_data)
-        if quality_rejection:
-            log.warning("[%s] Market data rejected: %s", sym, quality_rejection)
-            return
+            # 1. Pull real-time snapshot
+            rt_data = await self.pipeline.get_realtime(sym)
+            if rt_data is None or rt_data.empty:
+                return
 
-        # 2. Push to buffer so calibration/history stays warm.
-        self.buffer.push(sym, rt_data)
-        delayed_data = self.buffer.get_delayed(sym)
-        if delayed_data is None or len(delayed_data) < 200:
-            log.debug("[%s] Buffer warming up (%s bars)...", sym, 0 if delayed_data is None else len(delayed_data))
-            return
+            if len(rt_data) < max(self.config.atr_period_for_stops + 5, 50):
+                log.debug("[%s] Real-time data warming up (%s bars)...", sym, len(rt_data))
+                return
 
-        if len(rt_data) < 200:
-            log.debug("[%s] Real-time data warming up (%s bars)...", sym, len(rt_data))
-            return
+            # 2. Grid signal (mean-reversion or range-break)
+            with Timer(log, f"signals.generate[{sym}]", threshold_ms=500):
+                signal_out, rejection_gate = self.signals.generate(sym, rt_data)
 
-        # 3. Technical analysis on current data -> prediction.
-        # The prediction is stored and confirmed only after later bars arrive.
-        ta_result = self.analyzer.analyze(sym, rt_data)
-        prediction = self.predictor.predict(sym, ta_result, rt_data)
-        self.signals.store_prediction(sym, prediction)
-
-        confirmation = self.signals.confirm_prediction(sym, rt_data)
-        if confirmation is None:
+            # 3. Log the attempt (emitted or rejected) with full grid context
+            price = float(rt_data["close"].iloc[-1])
+            location = self.signals.locate(sym, price)
+            diag = self.grid_calibrator.diagnostics.get(sym, {})
             self.signal_logger.log_signal(
                 sym=sym,
-                ta_result=ta_result,
-                prediction=prediction,
-                delta=None,
-                signal=None,
-                rejection_gate="PENDING_CONFIRMATION",
+                location=location,
+                cov_mod=diag.get("best_cov"),
+                cov_mod_pvalue=diag.get("best_pvalue"),
+                signal=signal_out,
+                rejection_gate=rejection_gate,
             )
-            return
 
-        confirmed_prediction, delta = confirmation
-        confirmed_ta = confirmed_prediction.ta or ta_result
+            if signal_out is None:
+                return
 
-        # 4. Generate trade signal only if post-prediction momentum confirms.
-        signal_out = self.signals.generate(sym, confirmed_prediction, delta, rt_data)
+            log.info("[%s] SIGNAL -> %s %s | conf=%.1f%% | entry=%s SL=%s TP1=%s TP2=%s",
+                     sym, signal_out.signal_label, signal_out.direction,
+                     signal_out.confidence * 100,
+                     signal_out.entry, signal_out.stop_loss, signal_out.tp1, signal_out.tp2)
 
-        # v2.2: determine rejection gate for signal logging
-        rejection_gate = ""
-        if signal_out is None:
-            if confirmed_ta.vol_regime == "EXTREME":
-                rejection_gate = "VOL_REGIME_EXTREME"
-            elif confirmed_prediction.confidence < self.config.min_confidence:
-                rejection_gate = "CONFIDENCE"
-            elif confirmed_prediction.direction == 0:
-                rejection_gate = "FLAT_DIRECTION"
-            elif not delta.aligned:
-                rejection_gate = "DELTA_NOT_ALIGNED"
-            elif delta.alignment_score < self.config.delta_threshold:
-                rejection_gate = "DELTA_SCORE_LOW"
-            else:
-                rejection_gate = "RR_OR_COOLDOWN"
+            # 4. Risk check (thread-safe)
+            with Timer(log, f"risk.approve[{sym}]", threshold_ms=500):
+                with self.risk_lock:
+                    approved = self.risk.approve(signal_out, self.executor.get_account_value())
+            if not approved:
+                log.warning("[%s] Signal rejected by risk manager.", sym)
+                return
 
-        # v2.2: log every signal attempt
-        self.signal_logger.log_signal(
-            sym=sym,
-            ta_result=confirmed_ta,
-            prediction=confirmed_prediction,
-            delta=delta,
-            signal=signal_out,
-            rejection_gate=rejection_gate,
-        )
-
-        if signal_out is None:
-            return
-
-        log.info("[%s] SIGNAL → %s | conf=%.1f%% | entry=%s SL=%s TP1=%s TP2=%s",
-                 sym, signal_out.direction, signal_out.confidence * 100,
-                 signal_out.entry, signal_out.stop_loss, signal_out.tp1, signal_out.tp2)
-
-        # 6. Risk check (thread-safe)
-        with self.risk_lock:
-            approved = self.risk.approve(signal_out, self.executor.get_account_value())
-        if not approved:
-            log.warning("[%s] Signal rejected by risk manager.", sym)
-            return
-
-        # 7. Execute (thread-safe)
-        if self.config.mode == "live" or self.config.mode == "paper":
-            with self.exec_lock:
-                await self.executor.place_bracket_order(signal_out)
+            # 5. Execute (thread-safe). Arm signal cooldown only when the
+            # bracket actually goes out to the broker — risk-rejected signals
+            # must not burn the cooldown window.
+            if self.config.mode == "live" or self.config.mode == "paper":
+                with Timer(log, f"executor.place_bracket[{sym}]", threshold_ms=1500):
+                    with self.exec_lock:
+                        placed = await self.executor.place_bracket_order(signal_out)
+                if placed:
+                    self.signals.mark_executed(sym)
 
     # ------------------------------------------------------------------
     async def stop(self):
@@ -635,7 +629,10 @@ async def main():
     _supervisor_loop = asyncio.get_running_loop()
     _supervisor = BotSupervisor()
 
-    run_dashboard = os.getenv("CITADEL_RUN_DASHBOARD", "true").lower() not in {"0", "false", "no"}
+    # Dashboard is now decoupled — run `streamlit run citadel_bot/dashboard.py`
+    # in a separate process. Set CITADEL_RUN_DASHBOARD=true to revert to the
+    # legacy auto-launch (kept for local convenience).
+    run_dashboard = os.getenv("CITADEL_RUN_DASHBOARD", "false").lower() not in {"0", "false", "no"}
     control_port = int(os.getenv("CITADEL_CONTROL_PORT", "8765"))
     dashboard_process = None
 

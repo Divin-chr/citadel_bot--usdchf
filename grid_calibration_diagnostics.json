@@ -1,0 +1,25 @@
+{
+  "US500": {
+    "timestamp": "2026-06-28 17:40:34.041303+00:00",
+    "candidates": [
+      50.0,
+      100.0,
+      250.0
+    ],
+    "cov_by_candidate": [
+      1.97485884280524,
+      -1.1002551198166708,
+      -1.100255119816671
+    ],
+    "pvalue_by_candidate": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "best_cov": -1.100255119816671,
+    "best_pvalue": 0.0,
+    "effective_threshold": 0.016666666666666666,
+    "correction_method": "bonferroni",
+    "n_bars": 2000
+  }
+}

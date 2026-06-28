@@ -1,8 +1,0 @@
-15:59:23 | INFO     | main           | ============================================================
-15:59:23 | INFO     | main           |   CITADEL QUANT BOT  |  v2.2  |  PAPER MODE
-15:59:23 | INFO     | main           |   Instruments : NDAQ
-15:59:23 | INFO     | main           |   MT5 server  : MetaQuotes-Demo | login=5049244607
-15:59:23 | INFO     | main           |   Features    : Kelly=True | TrailingStop=True | SignalLog=True | Database=Disabled
-15:59:23 | INFO     | main           | ============================================================
-15:59:24 | INFO     | main           | ✅ Global database manager initialized
-15:59:24 | INFO     | main           | ✅ All database components initialized

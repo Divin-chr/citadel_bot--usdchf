@@ -1,0 +1,44 @@
+09:44:16 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+11:47:18 | INFO     | grid           | [US500] Grid calibrated → ε=10.000000 | cov_mod=-0.3107 | p=0.0000 (threshold=0.0071, bonferroni)
+11:47:23 | INFO     | grid           | Saved grid spacings to grid_spacings.json
+11:47:24 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=0.327 vs calibrated -0.3107 (ratio=-1.05 < threshold=0.50). Suspending until next recalibration.
+11:48:53 | INFO     | grid           | [US500] Grid calibrated → ε=10.000000 | cov_mod=-0.3073 | p=0.0000 (threshold=0.0071, bonferroni)
+11:48:53 | INFO     | grid           | Saved grid spacings to grid_spacings.json
+11:49:08 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=-0.08658 vs calibrated -0.3073 (ratio=0.28 < threshold=0.50). Suspending until next recalibration.
+11:49:57 | INFO     | grid           | [US500] Grid calibrated → ε=10.000000 | cov_mod=-0.3435 | p=0.0000 (threshold=0.0071, bonferroni)
+11:49:57 | INFO     | grid           | Saved grid spacings to grid_spacings.json
+11:49:58 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=-0.01337 vs calibrated -0.3435 (ratio=0.04 < threshold=0.50). Suspending until next recalibration.
+11:51:41 | INFO     | grid           | [US500] Grid calibrated → ε=10.000000 | cov_mod=-0.3712 | p=0.0000 (threshold=0.0071, bonferroni)
+11:51:42 | INFO     | grid           | Saved grid spacings to grid_spacings.json
+11:52:16 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=-0.06524 vs calibrated -0.3712 (ratio=0.18 < threshold=0.50). Suspending until next recalibration.
+17:32:52 | INFO     | grid           | [US500] Grid calibrated -> eps=10.000000 | cov_mod=-0.3107 | p=0.0000 (threshold=0.0071, bonferroni)
+17:32:52 | INFO     | grid           | Saved grid spacings to grid_spacings.json
+17:32:52 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=0.327 vs calibrated -0.3107 (ratio=-1.05 < threshold=0.50). Suspending until next recalibration.
+17:32:55 | INFO     | grid           | [US500] Grid calibrated -> eps=10.000000 | cov_mod=-0.3073 | p=0.0000 (threshold=0.0071, bonferroni)
+17:32:55 | INFO     | grid           | Saved grid spacings to grid_spacings.json
+17:32:56 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=-0.08658 vs calibrated -0.3073 (ratio=0.28 < threshold=0.50). Suspending until next recalibration.
+17:33:00 | INFO     | grid           | [US500] Grid calibrated -> eps=10.000000 | cov_mod=-0.3435 | p=0.0000 (threshold=0.0071, bonferroni)
+17:33:00 | INFO     | grid           | Saved grid spacings to grid_spacings.json
+17:33:00 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=-0.01337 vs calibrated -0.3435 (ratio=0.04 < threshold=0.50). Suspending until next recalibration.
+17:33:06 | INFO     | grid           | [US500] Grid calibrated -> eps=10.000000 | cov_mod=-0.3712 | p=0.0000 (threshold=0.0071, bonferroni)
+17:33:06 | INFO     | grid           | Saved grid spacings to grid_spacings.json
+17:33:06 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=-0.06524 vs calibrated -0.3712 (ratio=0.18 < threshold=0.50). Suspending until next recalibration.
+17:58:31 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=0.3642 vs calibrated -1 (ratio=-0.36 < threshold=0.50). Suspending until next recalibration.
+17:58:31 | WARNING  | grid           | [US500] Regime drift detected: recent cov_mod=0.3442 vs calibrated -1 (ratio=-0.34 < threshold=0.50). Suspending until next recalibration.
+17:58:31 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+17:58:31 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+17:58:31 | INFO     | grid           | Clearing 2 regime-suspension(s) after recalibration: ['NDAQ', 'US500']
+18:00:41 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+18:00:41 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+18:00:41 | INFO     | grid           | Clearing 2 regime-suspension(s) after recalibration: ['NDAQ', 'US500']
+18:43:12 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+18:43:12 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+18:43:12 | INFO     | grid           | Clearing 2 regime-suspension(s) after recalibration: ['NDAQ', 'US500']
+19:38:51 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+19:38:51 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+19:38:51 | INFO     | grid           | Clearing 2 regime-suspension(s) after recalibration: ['NDAQ', 'US500']
+19:40:34 | INFO     | grid           | [US500] Grid calibrated -> eps=250.000000 | cov_mod=-1.1 | p=0.0000 (threshold=0.0167, bonferroni)
+19:40:34 | INFO     | grid           | Saved grid spacings to grid_spacings.json
+19:40:34 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+19:40:34 | WARNING  | grid           | [US500] Emitter MEAN_REVERT killed: 30d P&L=-500.00 over 10 trades (threshold=-100.00)
+19:40:35 | INFO     | grid           | Clearing 2 regime-suspension(s) after recalibration: ['NDAQ', 'US500']

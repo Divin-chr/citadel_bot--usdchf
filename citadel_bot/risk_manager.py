@@ -19,7 +19,7 @@ import os
 import numpy as np
 
 from citadel_bot.config import BotConfig
-from citadel_bot.prediction_engine import TradeSignal
+from citadel_bot.grid_engine import TradeSignal
 
 log = logging.getLogger("risk")
 
@@ -48,9 +48,10 @@ class RiskManager:
         self._positions_today: int = 0
         # v2.3: rolling trade history for Kelly estimation (100 trades)
         self._trade_history: Dict[str, deque] = {}  # sym → deque of (win: bool, rr: float)
-        self._portfolio_heat: float = 0.0  # total risk across open positions
-        # v2.3: correlation tracking
-        self._open_positions: Dict[str, dict] = {}  # sym → {size, direction, entry_time}
+        self._portfolio_heat: float = 0.0  # total risk fraction across open broker tickets
+        # v2.3: correlation tracking — keyed by sym, then by broker ticket_id so brackets
+        # (which create 2 tickets per signal) are counted accurately
+        self._open_positions: Dict[str, Dict[str, dict]] = {}  # sym → {ticket_id → {size, direction, entry_time, risk_pct}}
         self._correlation_cache: Dict[Tuple[str, str], Tuple[float, datetime]] = {}  # corr -> (value, cached_at)
         self._correlation_ttl_hours = 4.0  # Cache TTL for correlations
         self._max_correlation = config.__dict__.get('max_correlation', 0.7)
@@ -88,7 +89,7 @@ class RiskManager:
             log.info("[%s] Bot-side risk filters disabled; allowing trade execution to proceed.", signal.sym)
 
         # Compute position size and attach it
-        size = self._position_size(signal, account_value, corr_risk)
+        size, risk_pct = self._position_size(signal, account_value, corr_risk)
         if size < 1 and self.config.disable_risk_filters:
             size = 1.0
         if size <= 0:
@@ -96,6 +97,7 @@ class RiskManager:
             return False
 
         signal.__dict__["quantity"] = float(size)
+        signal.__dict__["risk_pct"] = float(risk_pct)
         return True
 
     # ── Session filter ────────────────────────────────────────────────
@@ -299,10 +301,13 @@ class RiskManager:
     # ── Concurrent positions ──────────────────────────────────────────
 
     def _check_position_count(self) -> bool:
+        # One symbol with any open ticket counts as one logical position.
+        # Brackets create 2 tickets but they're a single risk exposure, so we cap on distinct symbols.
         open_positions = len(self._open_positions)
         if open_positions >= self.config.max_concurrent_positions:
-            log.debug("Max concurrent positions (%d) reached (open: %d).",
-                      self.config.max_concurrent_positions, open_positions)
+            log.debug("Max concurrent positions (%d) reached (open syms: %d, total tickets: %d).",
+                      self.config.max_concurrent_positions, open_positions,
+                      sum(len(tix) for tix in self._open_positions.values()))
             return False
         return True
 
@@ -319,7 +324,7 @@ class RiskManager:
         sym_class = self._get_instrument_class(sym)
         correlated_count = 0
 
-        for open_sym in self._open_positions.keys():
+        for open_sym in list(self._open_positions.keys()):
             open_class = self._get_instrument_class(open_sym)
 
             if sym_class == open_class:
@@ -360,70 +365,110 @@ class RiskManager:
                          sym1, sym2, age_hours, self._correlation_ttl_hours)
                 del self._correlation_cache[cache_key]
 
+        # Prefer h1 (refreshed every live tick by DataPipeline) over d1 (derived less often,
+        # may be stale on a fresh deploy until enough m1 bars accumulate). The pipeline writes
+        # to data/{data_dir}/market_data/{sym}_{tf}.csv — same path read here.
+        base_dir = f"{self.config.data_dir}/market_data"
         try:
-            # Try daily data first
-            for suffix in ['_d1.csv', '_h1.csv']:
-                path1 = f"data/market_data/{sym1}{suffix}"
-                path2 = f"data/market_data/{sym2}{suffix}"
+            import pandas as pd
+            for suffix in ['_h1.csv', '_d1.csv']:
+                path1 = f"{base_dir}/{sym1}{suffix}"
+                path2 = f"{base_dir}/{sym2}{suffix}"
+                if not (os.path.exists(path1) and os.path.exists(path2)):
+                    continue
 
-                if os.path.exists(path1) and os.path.exists(path2):
-                    import pandas as pd
-                    df1 = pd.read_csv(path1, index_col=0, parse_dates=True)
-                    df2 = pd.read_csv(path2, index_col=0, parse_dates=True)
-
-                    ret1 = df1['close'].pct_change().dropna()
-                    ret2 = df2['close'].pct_change().dropna()
-
-                    aligned = pd.concat([ret1, ret2], axis=1).dropna().tail(window)
-                    if len(aligned) >= 20:
-                        corr = float(aligned.iloc[:, 0].corr(aligned.iloc[:, 1]))
-                        # Cache with timestamp for TTL tracking
-                        self._correlation_cache[cache_key] = (corr, datetime.now(timezone.utc))
-                        log.info("[%s/%s] Correlation computed: %.3f (cached for %.1fh)",
-                                sym1, sym2, corr, self._correlation_ttl_hours)
-                        return corr
+                df1 = pd.read_csv(path1, index_col=0, parse_dates=True)
+                df2 = pd.read_csv(path2, index_col=0, parse_dates=True)
+                ret1 = df1['close'].pct_change().dropna()
+                ret2 = df2['close'].pct_change().dropna()
+                aligned = pd.concat([ret1, ret2], axis=1).dropna().tail(window)
+                if len(aligned) >= 20:
+                    corr = float(aligned.iloc[:, 0].corr(aligned.iloc[:, 1]))
+                    self._correlation_cache[cache_key] = (corr, datetime.now(timezone.utc))
+                    log.info("[%s/%s] Correlation computed: %.3f (source=%s, cached for %.1fh)",
+                             sym1, sym2, corr, suffix.strip('_.csv'), self._correlation_ttl_hours)
+                    return corr
+            log.debug("[%s/%s] Correlation skipped: no fresh h1/d1 data yet", sym1, sym2)
             return None
         except Exception as e:
             log.debug("Correlation calculation failed: %s", e)
             return None
 
-    def position_opened(self, sym: str, size: float = 0.0, direction: float = 1.0):
+    def position_opened(
+        self,
+        sym: str,
+        ticket_id: str,
+        size: float = 0.0,
+        direction: float = 1.0,
+        risk_pct: float = 0.0,
+    ):
+        """Record a new broker ticket. Brackets call this once per leg (TP1 + TP2)."""
         self._ensure_day_rollover()
+        ticket_id = str(ticket_id)
         if sym not in self._open_positions:
+            self._open_positions[sym] = {}
             self._positions_today += 1
-        self._open_positions[sym] = {
+        self._open_positions[sym][ticket_id] = {
             "size": size,
             "direction": direction,
             "entry_time": datetime.now(timezone.utc),
+            "risk_pct": float(risk_pct),
         }
+        # Portfolio heat = sum of risk fractions across all open broker tickets.
+        self._portfolio_heat = max(0.0, self._portfolio_heat + float(risk_pct))
 
-    def position_closed(self, sym: str = None):
+    def position_closed(self, sym: Optional[str] = None, ticket_id: Optional[str] = None):
+        """
+        Remove a closed ticket.
+        - (sym, ticket_id): close one specific broker ticket.
+        - (sym, None):      close all tickets for that symbol (rare — panic stop).
+        - (None, None):     clear all positions (used by external reset paths).
+        """
         self._ensure_day_rollover()
-        if sym is not None:
-            if sym in self._open_positions:
-                del self._open_positions[sym]
-                self._positions_today = max(0, self._positions_today - 1)
-        else:
+        if sym is None:
             if self._open_positions:
                 self._open_positions.clear()
                 self._positions_today = 0
+                self._portfolio_heat = 0.0
+            return
+
+        sym_tickets = self._open_positions.get(sym)
+        if not sym_tickets:
+            return
+
+        if ticket_id is None:
+            for t in list(sym_tickets.keys()):
+                self._release_ticket(sym, t)
+        else:
+            self._release_ticket(sym, str(ticket_id))
+
+    def _release_ticket(self, sym: str, ticket_id: str):
+        sym_tickets = self._open_positions.get(sym)
+        if not sym_tickets:
+            return
+        closed = sym_tickets.pop(ticket_id, None)
+        if closed is not None:
+            released = float(closed.get("risk_pct", 0.0))
+            self._portfolio_heat = max(0.0, self._portfolio_heat - released)
+        if not sym_tickets:
+            del self._open_positions[sym]
+            self._positions_today = max(0, self._positions_today - 1)
 
     # ── Position sizing (v2.2 — half-Kelly) ──────────────────────────
 
-    def _position_size(self, signal: TradeSignal, account_value: float, corr_risk: str = 'LOW') -> float:
+    def _position_size(
+        self, signal: TradeSignal, account_value: float, corr_risk: str = 'LOW'
+    ) -> Tuple[float, float]:
         """
         v2.3: Quarter-Kelly with hierarchical Bayesian shrinkage.
-        f = kelly_fraction × (p×b − q) / b
-        Capped at kelly_cap_pct per trade and portfolio_heat_cap_pct total.
-        Falls back to fixed percentage if Kelly is disabled or insufficient history.
-
-        Correlation adjustment: HIGH risk → 50% size reduction
+        Returns (size, risk_pct). risk_pct is the fraction of account at risk
+        on this bracket, used for portfolio heat tracking.
         """
         multiplier = self.config.get_multiplier(signal.sym)
         risk_pts   = abs(signal.entry - signal.stop_loss)
         risk_per_contract = risk_pts * multiplier
         if risk_per_contract <= 0:
-            return 0.0
+            return 0.0, 0.0
 
         # Determine risk percentage
         if self.config.use_kelly_sizing:
@@ -441,7 +486,7 @@ class RiskManager:
         size = max(0.0, round(size, 4))
         if self.config.disable_risk_filters and size < 1.0:
             size = 1.0
-        return size
+        return size, float(risk_pct)
 
     def _kelly_risk_pct(self, signal: TradeSignal) -> float:
         """

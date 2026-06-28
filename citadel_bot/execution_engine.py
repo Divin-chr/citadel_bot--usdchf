@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from citadel_bot.config import BotConfig
-from citadel_bot.prediction_engine import TradeSignal
+from citadel_bot.grid_engine import TradeSignal
 from citadel_bot.database.database_manager import db_manager
 from citadel_bot.utils.logger import get_logger
 
@@ -38,6 +38,7 @@ class ExecutionEngine:
         self.connection = connection
         self._connected = False
         self._risk_manager = None
+        self._emitter_tracker = None
         self._account_value: float = 100_000.0
         self._ledger_path = Path(self.config.data_dir) / "trade_ledger.csv"
         self._ensure_ledger_file()
@@ -47,6 +48,12 @@ class ExecutionEngine:
         self._db_available = False
         self._last_order_error: Optional[dict] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+        # Tickets whose realised PnL hasn't synced from MetaApi deals yet;
+        # retried on each _sync_positions_and_pnl tick, given up after 5 min.
+        self._pending_pnl_lookups: Dict[str, dict] = {}
+        # Per-ticket trailing-stop state — current SL on the broker side, ATR
+        # snapshot from entry, peak favorable price since the trail activated.
+        self._trail_state: Dict[str, dict] = {}
 
     async def connect(self):
         self._connected = True
@@ -70,6 +77,10 @@ class ExecutionEngine:
 
     def attach_risk_manager(self, risk_manager):
         self._risk_manager = risk_manager
+
+    def attach_emitter_tracker(self, emitter_tracker):
+        """Wire in the per-(sym, mode) performance tracker for kill-switch accounting."""
+        self._emitter_tracker = emitter_tracker
 
     async def place_manual_market_order(
         self,
@@ -206,6 +217,16 @@ class ExecutionEngine:
                 "is_tp1_leg": is_tp1,
                 "entry_price": signal.entry,
                 "client_id": result.get("clientId") or "",
+                "signal_label": str(getattr(signal, "signal_label", "") or ""),
+                "atr_at_entry": float(getattr(signal, "atr", 0.0) or 0.0),
+                "initial_sl": float(signal.stop_loss),
+            }
+            # Initialise trailing state — current SL is the bracket SL until
+            # _maintain_trailing_stops moves it favorably.
+            self._trail_state[ticket] = {
+                "current_sl": float(signal.stop_loss),
+                "peak_favorable": float(signal.entry),
+                "activated": False,
             }
             bracket_tickets.append(ticket)
             if is_tp1:
@@ -238,11 +259,21 @@ class ExecutionEngine:
             )
 
         if sent_count > 0 and self._risk_manager is not None:
-            self._risk_manager.position_opened(
-                signal.sym,
-                size=qty,
-                direction=1.0 if direction == "LONG" else -1.0,
-            )
+            signal_risk_pct = float(getattr(signal, "risk_pct", 0.0) or 0.0)
+            direction_val = 1.0 if direction == "LONG" else -1.0
+            for ticket in bracket_tickets:
+                tp = self._tracked_positions.get(ticket, {})
+                ticket_volume = float(tp.get("volume", 0.0))
+                # Split the bracket's risk_pct proportionally across the two legs by volume.
+                # Sum across tickets = signal_risk_pct, so portfolio heat stays accurate.
+                ticket_risk_pct = signal_risk_pct * (ticket_volume / qty) if qty > 0 else 0.0
+                self._risk_manager.position_opened(
+                    signal.sym,
+                    ticket_id=ticket,
+                    size=ticket_volume,
+                    direction=direction_val,
+                    risk_pct=ticket_risk_pct,
+                )
             return True
         return False
 
@@ -266,6 +297,9 @@ class ExecutionEngine:
         self._sync_positions_and_pnl()
         if self.config.trailing_stop_after_tp1:
             self._check_trailing_stops()
+        # ATR-distance trailing stop (Phase 2.5) — runs alongside the legacy
+        # breakeven-after-TP1 logic above. Stops only move favorably.
+        self._maintain_trailing_stops()
         return self._account_value
 
     async def persist_terminal_position_prices(self):
@@ -372,30 +406,117 @@ class ExecutionEngine:
         live_ids = {self._position_id(p) for p in self._terminal_positions()}
         live_ids.discard("")
         closed_tickets = [t for t in list(self._open_ticket_ids) if t not in live_ids]
+
         for ticket in closed_tickets:
             state = self._tracked_positions.pop(ticket, None)
             self._open_ticket_ids.discard(ticket)
             if not state:
                 continue
             sym = str(state.get("sym", "?"))
-            pnl = 0.0
+
+            # Always release the broker ticket from the risk manager immediately
+            # (no more market exposure). Only the PnL accounting is deferrable.
             if self._risk_manager is not None:
-                self._risk_manager.record_pnl(pnl, sym=sym)
-                self._risk_manager.position_closed(sym)
-            self._append_ledger_row(
-                event_type="POSITION_CLOSED",
-                sym=sym,
-                parent_order_id=self._ticket_to_int(ticket),
-                order_id=self._ticket_to_int(ticket),
-                direction="LONG" if state.get("direction", 1.0) > 0 else "SHORT",
-                qty_delta=0.0,
-                qty_open=0.0,
-                fill_price=0.0,
-                pnl_delta=0.0,
-                realized_pnl=pnl,
-                status="closed",
-                note=f"Position closed, opened_at={state.get('opened_at_utc', '')}, pnl unavailable from terminal state",
-            )
+                self._risk_manager.position_closed(sym, ticket_id=ticket)
+
+            pnl = self._get_position_pnl(ticket)
+            if pnl is None:
+                self._pending_pnl_lookups[ticket] = {
+                    "sym": sym,
+                    "state": state,
+                    "first_seen": datetime.now(timezone.utc),
+                }
+                log.debug("[%s] PnL lookup deferred for ticket %s (deals not synced)", sym, ticket)
+                continue
+
+            self._finalise_close(sym, ticket, state, pnl)
+
+        # Retry deferred PnL lookups (MetaApi deals eventual consistency)
+        for ticket in list(self._pending_pnl_lookups.keys()):
+            deferred = self._pending_pnl_lookups.get(ticket)
+            if not deferred:
+                continue
+            pnl = self._get_position_pnl(ticket)
+            if pnl is None:
+                age_sec = (datetime.now(timezone.utc) - deferred["first_seen"]).total_seconds()
+                if age_sec > 300:
+                    log.warning(
+                        "[%s] PnL lookup timed out after %.0fs for ticket %s; recording 0",
+                        deferred["sym"], age_sec, ticket,
+                    )
+                    self._finalise_close(deferred["sym"], ticket, deferred["state"], 0.0)
+                    self._pending_pnl_lookups.pop(ticket, None)
+                continue
+            self._finalise_close(deferred["sym"], ticket, deferred["state"], pnl)
+            self._pending_pnl_lookups.pop(ticket, None)
+
+    def _get_position_pnl(self, ticket_id: str) -> Optional[float]:
+        """
+        Sum realised PnL across all MetaApi deals for a position
+        (profit + swap + commission). Returns None if the exit deal hasn't
+        synced from the broker yet — caller defers and retries.
+        """
+        try:
+            history_storage = getattr(self.connection, "history_storage", None)
+            if history_storage is None:
+                return None
+            # Prefer the SDK's indexed lookup; fall back to filtering all deals
+            # if the method isn't available on this SDK version.
+            if hasattr(history_storage, "get_deals_by_position"):
+                matching = list(history_storage.get_deals_by_position(str(ticket_id)) or [])
+            else:
+                deals = list(getattr(history_storage, "deals", []) or [])
+                matching = [d for d in deals if str(d.get("positionId") or "") == str(ticket_id)]
+        except Exception:
+            return None
+
+        if not matching:
+            return None
+
+        exit_entry_types = {"DEAL_ENTRY_OUT", "DEAL_ENTRY_OUT_BY", "DEAL_ENTRY_INOUT"}
+        has_exit = any(str(d.get("entryType") or "") in exit_entry_types for d in matching)
+        if not has_exit:
+            return None
+
+        total = 0.0
+        for d in matching:
+            try:
+                total += float(d.get("profit") or 0.0)
+                total += float(d.get("swap") or 0.0)
+                total += float(d.get("commission") or 0.0)
+            except (TypeError, ValueError):
+                continue
+        return total
+
+    def _finalise_close(self, sym: str, ticket: str, state: dict, pnl: float):
+        if self._risk_manager is not None:
+            self._risk_manager.record_pnl(pnl, sym=sym)
+
+        # Per-(sym, signal_mode) kill-switch accounting.
+        signal_label = str(state.get("signal_label", "") or "")
+        if self._emitter_tracker is not None and signal_label:
+            try:
+                self._emitter_tracker.record(sym, signal_label, pnl)
+            except Exception as exc:
+                log.warning("[%s] Emitter tracker record failed: %s", sym, exc)
+
+        # Clean up trail state — this ticket is gone.
+        self._trail_state.pop(ticket, None)
+
+        self._append_ledger_row(
+            event_type="POSITION_CLOSED",
+            sym=sym,
+            parent_order_id=self._ticket_to_int(ticket),
+            order_id=self._ticket_to_int(ticket),
+            direction="LONG" if state.get("direction", 1.0) > 0 else "SHORT",
+            qty_delta=0.0,
+            qty_open=0.0,
+            fill_price=0.0,
+            pnl_delta=pnl,
+            realized_pnl=pnl,
+            status="closed",
+            note=f"Position closed, opened_at={state.get('opened_at_utc', '')}, pnl=history_storage, emitter={signal_label}",
+        )
 
     def _check_trailing_stops(self):
         if not self._connected:
@@ -424,6 +545,103 @@ class ExecutionEngine:
                 lambda: self._move_stop_to_breakeven(sym, bracket.tp2_ticket, bracket.entry_price, take_profit),
                 f"breakeven_{sym}_{bracket.tp2_ticket}"
             )
+
+    def _maintain_trailing_stops(self):
+        """
+        ATR-distance trailing stop.
+
+        For each open ticket, once price has moved at least
+        `trailing_activation_atr * atr_at_entry` in the favorable direction,
+        trail the SL `trailing_distance_atr * atr_at_entry` behind the peak
+        favorable price. Only moves SL favorably (never widens).
+        """
+        if not self._connected:
+            return
+        activation_mult = float(self.config.trailing_activation_atr)
+        distance_mult = float(self.config.trailing_distance_atr)
+        if distance_mult <= 0:
+            return
+
+        positions = self._terminal_positions()
+        live_by_id = {self._position_id(p): p for p in positions if self._position_id(p)}
+
+        for ticket, state in list(self._tracked_positions.items()):
+            position = live_by_id.get(ticket)
+            if position is None:
+                # Ticket has closed already; clean up trail bookkeeping.
+                self._trail_state.pop(ticket, None)
+                continue
+
+            atr = float(state.get("atr_at_entry") or 0.0)
+            if atr <= 0:
+                continue
+
+            try:
+                current_price = float(position.get("currentPrice") or 0.0)
+            except (TypeError, ValueError):
+                continue
+            if current_price <= 0:
+                continue
+
+            direction = float(state.get("direction", 1.0))
+            entry = float(state.get("entry_price") or 0.0)
+            trail = self._trail_state.setdefault(ticket, {
+                "current_sl": float(state.get("initial_sl") or 0.0),
+                "peak_favorable": entry,
+                "activated": False,
+            })
+
+            # Update peak favorable price
+            if direction > 0:
+                trail["peak_favorable"] = max(trail["peak_favorable"], current_price)
+                favorable_move = trail["peak_favorable"] - entry
+            else:
+                if trail["peak_favorable"] == entry or current_price < trail["peak_favorable"]:
+                    trail["peak_favorable"] = min(trail["peak_favorable"], current_price)
+                favorable_move = entry - trail["peak_favorable"]
+
+            # Wait until the trade is sufficiently in profit before trailing
+            if not trail["activated"]:
+                if favorable_move < activation_mult * atr:
+                    continue
+                trail["activated"] = True
+                log.info("[%s] Trailing stop armed for ticket %s (entry=%.5f, peak=%.5f, atr=%.5f)",
+                         state.get("sym", "?"), ticket, entry, trail["peak_favorable"], atr)
+
+            # Candidate new SL
+            if direction > 0:
+                new_sl = trail["peak_favorable"] - distance_mult * atr
+                improves = new_sl > trail["current_sl"]
+            else:
+                new_sl = trail["peak_favorable"] + distance_mult * atr
+                improves = new_sl < trail["current_sl"]
+
+            if not improves:
+                continue
+
+            sym = state.get("sym", "?")
+            new_sl = self._round_price(sym, new_sl)
+            tp = position.get("takeProfit") or position.get("tp")
+            self._create_background_task(
+                lambda tk=ticket, sl=new_sl, tp=tp, s=sym: self._apply_trailing_sl(s, tk, sl, tp),
+                f"trail_{sym}_{ticket}",
+            )
+            trail["current_sl"] = new_sl
+
+    async def _apply_trailing_sl(
+        self, sym: str, position_id: str, new_sl: float, take_profit
+    ):
+        try:
+            await self.connection.modify_position(
+                position_id, stop_loss=float(new_sl), take_profit=take_profit
+            )
+            log.info("[%s] Trailing SL → %.5f for ticket %s", sym, new_sl, position_id)
+        except Exception as exc:
+            log.warning("[%s] Trailing SL modify failed for %s: %s", sym, position_id, exc)
+            # Roll back the local SL snapshot so we retry on the next sync tick.
+            state = self._trail_state.get(position_id)
+            if state is not None:
+                state["current_sl"] = state.get("current_sl", new_sl)
 
     async def _move_stop_to_breakeven(
         self, sym: str, position_id: str, entry_price: float, take_profit: Optional[float]

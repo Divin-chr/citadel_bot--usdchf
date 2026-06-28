@@ -205,6 +205,80 @@ CREATE INDEX idx_buffer_calibration_instrument ON buffer_calibration(instrument_
 CREATE INDEX idx_buffer_calibration_run_timestamp ON buffer_calibration(run_timestamp DESC);
 
 -- =================================================================================
+-- GRID CALIBRATION (Teeple 2025 — ε per instrument)
+-- =================================================================================
+
+CREATE TABLE IF NOT EXISTS grid_calibration (
+    calibration_id SERIAL PRIMARY KEY,
+    instrument_id INTEGER NOT NULL REFERENCES instruments(instrument_id),
+    run_timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+
+    -- Candidates scanned and per-candidate test stats
+    candidates DOUBLE PRECISION[] NOT NULL,
+    cov_mod_by_candidate DOUBLE PRECISION[] NOT NULL,
+    pvalue_by_candidate DOUBLE PRECISION[] NOT NULL,
+
+    -- Chosen ε
+    epsilon DOUBLE PRECISION NOT NULL,
+    cov_mod DOUBLE PRECISION NOT NULL,
+    p_value DOUBLE PRECISION NOT NULL,
+    is_significant BOOLEAN NOT NULL,
+
+    n_bars INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_grid_calibration_instrument
+    ON grid_calibration(instrument_id);
+CREATE INDEX IF NOT EXISTS idx_grid_calibration_run_timestamp
+    ON grid_calibration(run_timestamp DESC);
+
+-- =================================================================================
+-- GRID SIGNAL LOGS (one row per analysis tick, emitted or rejected)
+-- =================================================================================
+
+CREATE TABLE IF NOT EXISTS grid_signal_logs (
+    signal_id BIGSERIAL PRIMARY KEY,
+    timestamp_utc TIMESTAMP WITH TIME ZONE NOT NULL,
+    instrument_id INTEGER NOT NULL REFERENCES instruments(instrument_id),
+
+    -- Grid state
+    epsilon DOUBLE PRECISION,
+    grid_below DOUBLE PRECISION,
+    grid_above DOUBLE PRECISION,
+    midpoint DOUBLE PRECISION,
+    regime_position DOUBLE PRECISION,
+
+    -- Calibration stats (snapshot)
+    cov_mod DOUBLE PRECISION,
+    cov_mod_pvalue DOUBLE PRECISION,
+
+    -- Outcome
+    signal_emitted BOOLEAN NOT NULL DEFAULT FALSE,
+    signal_mode VARCHAR(20),               -- MEAN_REVERT | RANGE_BREAK
+    rejection_gate VARCHAR(50),
+    direction VARCHAR(5),                  -- LONG | SHORT | ''
+    confidence DECIMAL(6,4),
+
+    -- Trade parameters (when emitted)
+    entry_price DECIMAL(12,5),
+    stop_loss DECIMAL(12,5),
+    tp1 DECIMAL(12,5),
+    tp2 DECIMAL(12,5),
+    rr_ratio DECIMAL(6,2),
+    atr DECIMAL(12,5),
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_grid_signal_logs_timestamp
+    ON grid_signal_logs(timestamp_utc DESC);
+CREATE INDEX IF NOT EXISTS idx_grid_signal_logs_instrument
+    ON grid_signal_logs(instrument_id);
+CREATE INDEX IF NOT EXISTS idx_grid_signal_logs_signal_emitted
+    ON grid_signal_logs(signal_emitted);
+
+-- =================================================================================
 -- ECONOMIC CALENDAR (External Events)
 -- =================================================================================
 

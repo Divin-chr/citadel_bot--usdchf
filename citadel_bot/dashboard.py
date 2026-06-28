@@ -573,17 +573,10 @@ def show_instruments():
 
         col1, col2 = st.columns(2)
         with col1:
-            min_confidence = st.number_input(
-                "Min Confidence",
-                min_value=0.0, max_value=1.0,
-                value=per_inst.get("min_confidence", bot_controller.config.min_confidence),
-                step=0.01, key=f"min_conf_{selected_inst}"
-            )
-
             max_risk = st.number_input(
                 "Max Risk % (override)",
                 min_value=0.001, max_value=0.1,
-                value=per_inst.get("max_risk_pct", bot_controller.config.max_risk_per_trade_pct),
+                value=float(per_inst.get("risk_pct", bot_controller.config.max_risk_per_trade_pct)),
                 step=0.001, key=f"max_risk_{selected_inst}"
             )
 
@@ -591,25 +584,16 @@ def show_instruments():
             min_rr = st.number_input(
                 "Min R:R Ratio",
                 min_value=0.5, max_value=5.0,
-                value=per_inst.get("min_rr_ratio", bot_controller.config.min_rr_ratio),
+                value=float(per_inst.get("min_rr_ratio", bot_controller.config.min_rr_ratio)),
                 step=0.1, key=f"min_rr_{selected_inst}"
-            )
-
-            atr_mult = st.number_input(
-                "ATR SL Multiplier",
-                min_value=0.5, max_value=5.0,
-                value=per_inst.get("atr_sl_multiplier", bot_controller.config.atr_sl_multiplier),
-                step=0.1, key=f"atr_mult_{selected_inst}"
             )
 
         if st.button(f"💾 Save {selected_inst} Settings", width='stretch'):
             if selected_inst not in bot_controller.config.per_instrument:
                 bot_controller.config.per_instrument[selected_inst] = {}
 
-            bot_controller.config.per_instrument[selected_inst]["min_confidence"] = min_confidence
-            bot_controller.config.per_instrument[selected_inst]["max_risk_pct"] = max_risk
+            bot_controller.config.per_instrument[selected_inst]["risk_pct"] = max_risk
             bot_controller.config.per_instrument[selected_inst]["min_rr_ratio"] = min_rr
-            bot_controller.config.per_instrument[selected_inst]["atr_sl_multiplier"] = atr_mult
 
             success, msg = bot_controller.save_config(bot_controller.config)
             if success:
@@ -627,8 +611,8 @@ def show_settings():
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "General",
         "Risk",
-        "Technical Analysis",
-        "Buffer & Data",
+        "Grid Strategy",
+        "Data & Calibration",
         "MetaApi"
     ])
 
@@ -670,7 +654,6 @@ def show_settings():
 
         with col2:
             max_concurrent = st.number_input("Max Positions", 1, 10, bot_controller.config.max_concurrent_positions, key="settings_risk_max_concurrent")
-            atr_sl_mult = st.number_input("ATR Mult", 0.5, 5.0, bot_controller.config.atr_sl_multiplier, 0.1, key="settings_risk_atr_sl_mult")
             kelly_cap = st.number_input("Kelly Cap (%)", 0.001, 0.1, bot_controller.config.kelly_cap_pct, 0.001, key="settings_risk_kelly_cap")
 
         if st.button("💾 Save", width='stretch', key="settings_risk_save"):
@@ -678,7 +661,6 @@ def show_settings():
             bot_controller.config.max_daily_drawdown_pct = max_drawdown
             bot_controller.config.portfolio_heat_cap_pct = portfolio_heat
             bot_controller.config.max_concurrent_positions = max_concurrent
-            bot_controller.config.atr_sl_multiplier = atr_sl_mult
             bot_controller.config.kelly_cap_pct = kelly_cap
             success, msg = bot_controller.save_config(bot_controller.config)
             if success:
@@ -687,30 +669,61 @@ def show_settings():
                 st.error(f"❌ {msg}")
 
     with tab3:
-        st.subheader("Technical Analysis")
+        st.subheader("Grid Strategy")
+        st.caption(
+            "Per Teeple (2025). ε is auto-detected per instrument via the "
+            "Donaldson-Kim Cov^mod test on startup; the values below shape "
+            "how the bot trades the grid."
+        )
 
         col1, col2 = st.columns(2)
         with col1:
-            rsi = st.number_input("RSI", 5, 50, bot_controller.config.rsi_period, key="settings_ta_rsi")
-            macd_fast = st.number_input("MACD Fast", 5, 30, bot_controller.config.macd_fast, key="settings_ta_macd_fast")
-            macd_slow = st.number_input("MACD Slow", 20, 100, bot_controller.config.macd_slow, key="settings_ta_macd_slow")
-            macd_sig = st.number_input("MACD Sig", 5, 30, bot_controller.config.macd_signal, key="settings_ta_macd_sig")
+            dz_mid = st.number_input(
+                "Midpoint dead zone (fraction of ε)",
+                min_value=0.0, max_value=0.45,
+                value=float(bot_controller.config.grid_dead_zone), step=0.01,
+                key="settings_grid_dz_mid",
+            )
+            dz_edge = st.number_input(
+                "Edge dead zone (fraction of ε)",
+                min_value=0.0, max_value=0.30,
+                value=float(bot_controller.config.grid_edge_dead_zone), step=0.01,
+                key="settings_grid_dz_edge",
+            )
+            atr_buf = st.number_input(
+                "ATR pad on stops (× ATR)",
+                min_value=0.0, max_value=2.0,
+                value=float(bot_controller.config.atr_sl_buffer), step=0.05,
+                key="settings_grid_atr_buf",
+            )
 
         with col2:
-            bb = st.number_input("BB Period", 10, 50, bot_controller.config.bb_period, key="settings_ta_bb")
-            bb_std = st.number_input("BB Std", 1.0, 5.0, bot_controller.config.bb_std, 0.1, key="settings_ta_bb_std")
-            atr = st.number_input("ATR", 5, 50, bot_controller.config.atr_period, key="settings_ta_atr")
-            vol_ma = st.number_input("Vol MA", 5, 50, bot_controller.config.volume_ma_period, key="settings_ta_vol_ma")
+            cooldown = st.number_input(
+                "Signal cooldown (bars)",
+                min_value=0, max_value=500,
+                value=int(bot_controller.config.signal_cooldown_bars),
+                key="settings_grid_cooldown",
+            )
+            min_rr = st.number_input(
+                "Min R:R ratio",
+                min_value=0.5, max_value=5.0,
+                value=float(bot_controller.config.min_rr_ratio), step=0.1,
+                key="settings_grid_min_rr",
+            )
+            rb_look = st.number_input(
+                "Range-break lookback (bars)",
+                min_value=1, max_value=50,
+                value=int(bot_controller.config.range_break_lookback),
+                key="settings_grid_rb_look",
+            )
 
-        if st.button("💾 Save", width='stretch', key="settings_ta_save"):
-            bot_controller.config.rsi_period = rsi
-            bot_controller.config.macd_fast = macd_fast
-            bot_controller.config.macd_slow = macd_slow
-            bot_controller.config.macd_signal = macd_sig
-            bot_controller.config.bb_period = bb
-            bot_controller.config.bb_std = bb_std
-            bot_controller.config.atr_period = atr
-            bot_controller.config.volume_ma_period = vol_ma
+        if st.button("💾 Save", width='stretch', key="settings_grid_save"):
+            bot_controller.config.grid_dead_zone = dz_mid
+            bot_controller.config.grid_edge_dead_zone = dz_edge
+            bot_controller.config.atr_sl_buffer = atr_buf
+            bot_controller.config.signal_cooldown_bars = cooldown
+            bot_controller.config.min_rr_ratio = min_rr
+            bot_controller.config.range_break_lookback = rb_look
             success, msg = bot_controller.save_config(bot_controller.config)
             if success:
                 st.success(f"✅ {msg}")
@@ -718,26 +731,42 @@ def show_settings():
                 st.error(f"❌ {msg}")
 
     with tab4:
-        st.subheader("Buffer & Data")
+        st.subheader("Data & Calibration")
 
         col1, col2 = st.columns(2)
         with col1:
-            history = st.number_input("History Bars", 100, 2000, bot_controller.config.history_bars, key="settings_data_history")
-            cal_days = st.number_input("Calibration Days", 30, 365, bot_controller.config.calibration_window_days, key="settings_data_cal_days")
-            buf_min = st.number_input("Buffer Min", 1, 30, bot_controller.config.buffer_min_delay_min, key="settings_data_buf_min")
+            history = st.number_input(
+                "History Bars",
+                min_value=100, max_value=20_000,
+                value=int(bot_controller.config.history_bars),
+                key="settings_data_history",
+            )
+            recal_days = st.number_input(
+                "Grid recalibration (days)",
+                min_value=1, max_value=365,
+                value=int(bot_controller.config.grid_recalibration_days),
+                key="settings_data_recal_days",
+            )
 
         with col2:
-            buf_max = st.number_input("Buffer Max", 10, 60, bot_controller.config.buffer_max_delay_min, key="settings_data_buf_max")
-            cal_step = st.number_input("Cal Step", 1, 10, bot_controller.config.calibration_step_min, key="settings_data_cal_step")
-            auto_cal = st.checkbox("Auto Calibrate", bot_controller.config.auto_calibrate, key="settings_data_auto_cal")
+            sig = st.number_input(
+                "Min ε significance (p<)",
+                min_value=0.001, max_value=0.20,
+                value=float(bot_controller.config.grid_min_significance), step=0.005,
+                key="settings_data_sig",
+            )
+            atr_p = st.number_input(
+                "ATR period (for stops)",
+                min_value=2, max_value=200,
+                value=int(bot_controller.config.atr_period_for_stops),
+                key="settings_data_atr_p",
+            )
 
         if st.button("💾 Save", width='stretch', key="settings_data_save"):
             bot_controller.config.history_bars = history
-            bot_controller.config.calibration_window_days = cal_days
-            bot_controller.config.buffer_min_delay_min = buf_min
-            bot_controller.config.buffer_max_delay_min = buf_max
-            bot_controller.config.calibration_step_min = cal_step
-            bot_controller.config.auto_calibrate = auto_cal
+            bot_controller.config.grid_recalibration_days = recal_days
+            bot_controller.config.grid_min_significance = sig
+            bot_controller.config.atr_period_for_stops = atr_p
             success, msg = bot_controller.save_config(bot_controller.config)
             if success:
                 st.success(f"✅ {msg}")

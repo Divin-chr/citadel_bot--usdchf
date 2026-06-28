@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from citadel_bot.main import CitadelBot, BotSupervisor; from citadel_bot.risk_manager import RiskManager; from citadel_bot.execution_engine import ExecutionEngine; from citadel_bot.grid_engine import GridSignalGenerator, GridCalibrator, TradeSignal; print\\('IMPORTS OK'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python citadel_bot/backtest.py --sym US500 --days 90 --folds 4 --synthetic-eps 10 --synthetic-pull 0.05)",
+      "Bash(python -c \"import pytest; print\\(pytest.__version__\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -c \"import pytest; print\\('pytest', pytest.__version__\\)\")",
+      "Bash(python -m pytest tests/ -v --tb=short)",
+      "Bash(python -m pytest tests/ --tb=line)",
+      "Bash(python -m pytest tests/ --tb=short)"
+    ]
+  }
+}

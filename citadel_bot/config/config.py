@@ -15,7 +15,7 @@ load_dotenv()
 
 @dataclass
 class BotConfig:
-    # ─── Database connection ───────────────────────────────────────────────────────────────────
+    # ── Database connection ──────────────────────────────────────────
     database_url: str = ""
     database_host: str = ""
     database_port: int = 5432
@@ -23,15 +23,12 @@ class BotConfig:
     database_user: str = ""
     database_password: str = ""
 
-    # ── MetaApi connection ───────────────────────────────────────────────
+    # ── MetaApi connection ───────────────────────────────────────────
     metaapi_token: str = ""
     metaapi_account_id: str = ""
     mode: str = ""            # "paper" | "live"
 
     # ── Instruments ──────────────────────────────────────────────────
-    # Populated from dashboard or config.yaml.
-    # All instrument metadata (multiplier, exchange, session) is
-    # looked up dynamically from instrument_catalog.py.
     instruments: List[str] = field(default_factory=lambda: ["US30", "US500", "NDAQ", "USOUSD"])
 
     # Per-instrument overrides (optional — catalog defaults are used when absent)
@@ -40,24 +37,76 @@ class BotConfig:
     instrument_multiplier: Dict[str, float] = field(default_factory=dict)
     instrument_session: Dict[str, str] = field(default_factory=dict)
 
-    # Per-instrument settings overrides
+    # Per-instrument settings overrides (risk_pct etc.)
     per_instrument: Dict[str, Dict[str, float]] = field(default_factory=dict)
 
-    # ── Data / buffer ────────────────────────────────────────────────
+    # ── Data ─────────────────────────────────────────────────────────
     bar_size: str = "1 min"
     history_bars: int = 400
-    auto_calibrate: bool = True
-    calibration_window_days: int = 90
-    calibration_step_min: int = 2
-    buffer_min_delay_min: int = 4
-    buffer_max_delay_min: int = 40
 
-    # ── Signal generation ────────────────────────────────────────────
-    min_confidence: float = 0.62
-    min_rr_ratio: float = 1.8
-    delta_threshold: float = 0.55
-    confirmation_delay_min: int = 15
+    # ── Grid strategy (Teeple 2025) ──────────────────────────────────
+    # Candidate ε values per asset class — calibrator scans these and picks
+    # the most-negative significant Cov^mod for each instrument.
+    grid_candidates_indices: List[float] = field(default_factory=lambda: [
+        2.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0
+    ])
+    grid_candidates_forex: List[float] = field(default_factory=lambda: [
+        0.0010, 0.0025, 0.0050, 0.0100, 0.0250
+    ])
+    grid_candidates_crypto: List[float] = field(default_factory=lambda: [
+        10.0, 50.0, 100.0, 500.0, 1000.0, 5000.0
+    ])
+    grid_candidates_commodities: List[float] = field(default_factory=lambda: [
+        0.10, 0.25, 0.50, 1.00, 5.00
+    ])
+    # Dead zone around the midpoint where mean-reversion does not trade
+    # (model says nothing happens there). 0.10 = ±5% of ε around the midpoint.
+    grid_dead_zone: float = 0.10
+    # Dead zone at the edges (within this fraction of ε from a grid line) where
+    # mean-reversion stands aside — breakouts are likely brewing.
+    grid_edge_dead_zone: float = 0.05
+    # Recalibrate ε every N days when the cached value is older than this.
+    grid_recalibration_days: int = 30
+    # Permutation-test threshold for accepting an ε. Bonferroni correction
+    # divides this by the number of candidates per asset class.
+    grid_min_significance: float = 0.05
+    # Multiple-comparisons correction across the candidate ε sweep.
+    # "bonferroni" → require p < grid_min_significance / N_candidates.
+    # "none"       → use grid_min_significance as-is (the original behavior).
+    grid_correction_method: str = "bonferroni"
+    # Live regime monitor — recomputes Cov^mod on the last N bars after warmup.
+    # If recent cov drifts above (regime_break_threshold * calibrated_cov), suspend
+    # trading on the instrument until the next recalibration window.
+    regime_monitor_enabled: bool = True
+    regime_monitor_window: int = 500
+    regime_break_threshold: float = 0.5
+    # How many bars back to look when detecting a grid-line cross (range-break).
+    range_break_lookback: int = 15
+    # Require this many consecutive closes beyond the broken grid line before
+    # firing a range-break signal. Suppresses single-bar noise crosses.
+    range_break_confirmation_closes: int = 2
+    # ATR period used purely to pad stop-losses (so SL isn't exactly at a grid line).
+    atr_period_for_stops: int = 14
+    # SL pad as a multiple of ATR beyond the protecting grid line.
+    atr_sl_buffer: float = 0.25
+    # Per-(sym, emitter) auto-disable. Both gates must be true to kill an emitter:
+    #   trailing 30-day realised P&L < emitter_kill_threshold_usd
+    #   AND closed trades in window >= emitter_min_trades_for_kill
+    # Re-enables automatically once losses age out of the 30-day window.
+    emitter_kill_threshold_usd: float = -100.0
+    emitter_min_trades_for_kill: int = 10
+    # Trailing stop (Phase 2.5). Replaces the static grid-anchored SL once the
+    # trade has moved trailing_activation_atr in profit.
+    trailing_distance_atr: float = 1.5
+    trailing_activation_atr: float = 1.0
+    # Minimum bars between signals on the same symbol.
+    signal_cooldown_bars: int = 30
+    # Master switch (matches the old API used by RiskManager).
     disable_signal_filters: bool = False
+
+    # ── Signal acceptance ────────────────────────────────────────────
+    min_rr_ratio: float = 1.0
+    tp1_size_pct: float = 0.5
 
     # ── Risk management ──────────────────────────────────────────────
     max_risk_per_trade_pct: float = 0.015
@@ -66,59 +115,35 @@ class BotConfig:
     max_correlation: float = 0.7
     max_correlated_positions: int = 1
     disable_risk_filters: bool = False
-    atr_sl_multiplier: float = 1.8
-    tp1_rr: float = 1.5
-    tp2_rr: float = 3.0
-    tp1_size_pct: float = 0.5
 
-    # ── Session filters (defaults; overridden per instrument via catalog) ──
+    # ── Session filters (defaults; per-instrument overrides via catalog) ──
     trade_session_start: str = "09:30"
     trade_session_end: str = "16:00"
     avoid_first_minutes: int = 5
     macro_halt_minutes_before: int = 30
     macro_halt_minutes_after: int = 60
 
-    # ── Technical analysis ───────────────────────────────────────────
-    rsi_period: int = 14
-    macd_fast: int = 12
-    macd_slow: int = 26
-    macd_signal: int = 9
-    bb_period: int = 20
-    bb_std: float = 2.0
-    ma_periods: List[int] = field(default_factory=lambda: [50, 100, 200])
-    atr_period: int = 14
-    volume_ma_period: int = 20
-
-    # ── Signal cooldown ──────────────────────────────────────────────
-    signal_cooldown_bars: int = 30       # min bars between signals per symbol
-
     # ── Kelly sizing ─────────────────────────────────────────────────
     use_kelly_sizing: bool = True
-    kelly_fraction: float = 0.5          # half-Kelly
-    kelly_cap_pct: float = 0.02          # max 2% per trade under Kelly
-    portfolio_heat_cap_pct: float = 0.06 # max 6% total portfolio risk
-    kelly_lookback_trades: int = 50      # rolling window for win-rate estimation
-
-    # ── Volatility regime ────────────────────────────────────────────
-    vol_regime_lookback_days: int = 60   # ATR percentile window
-    vol_regime_high_pct: float = 0.75    # above this: dampen trend, amplify MR
-    vol_regime_halt_pct: float = 0.95    # above this: halt trading
-    vol_regime_reduce_risk_pct: float = 0.85  # above this: halve risk
+    kelly_fraction: float = 0.5
+    kelly_cap_pct: float = 0.02
+    portfolio_heat_cap_pct: float = 0.06
+    kelly_lookback_trades: int = 50
 
     # ── Backtest cost model ──────────────────────────────────────────
-    backtest_spread_pts: float = 0.0     # 0 = use catalog typical_spread
-    backtest_slippage_pts: float = 1.0   # 1 tick slippage per side
+    backtest_spread_pts: float = 0.0
+    backtest_slippage_pts: float = 1.0
     backtest_commission_per_lot: float = 0.0
     backtest_stop_slippage_multiplier: float = 2.0
     backtest_gap_probability: float = 0.05
 
     # ── Trailing stop ────────────────────────────────────────────────
-    trailing_stop_after_tp1: bool = True # move SL to breakeven after TP1
+    trailing_stop_after_tp1: bool = True
 
     # ── Signal logging ───────────────────────────────────────────────
-    signal_logging: bool = True          # log all signal attempts to CSV
+    signal_logging: bool = True
 
-    # ── MetaApi / diagnostics ───────────────────────────────────────
+    # ── MetaApi / diagnostics ────────────────────────────────────────
     log_metaapi_messages: bool = True
 
     # ── Misc ─────────────────────────────────────────────────────────

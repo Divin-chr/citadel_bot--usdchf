@@ -1,17 +1,6 @@
-atr_period: 14
-atr_sl_multiplier: 1.8
-auto_calibrate: true
-avoid_first_minutes: 5
-backtest_commission_per_lot: 0.0
-backtest_slippage_pts: 1.0
-backtest_spread_pts: 0.0
-bar_size: 1 min
-bb_period: 20
-bb_std: 2.0
-buffer_max_delay_min: 40
-buffer_min_delay_min: 4
-calibration_step_min: 2
-calibration_window_days: 90
+mode: live
+
+# ── Database ─────────────────────────────────────────────────────────
 database_url: ''
 database_host: ''
 database_port: 5432
@@ -19,55 +8,95 @@ database_name: ''
 database_user: ''
 database_password: ''
 
-data_dir: data
-delta_threshold: 0.55
-disable_risk_filters: false
-disable_signal_filters: false
-history_bars: 400
+# ── Instruments ──────────────────────────────────────────────────────
+instruments:
+- USDCHF
 instrument_currency: {}
 instrument_exchange: {}
 instrument_multiplier: {}
 instrument_session: {}
-instruments:
-- USDCHF
-kelly_cap_pct: 0.02
-kelly_fraction: 0.5
-kelly_lookback_trades: 50
+per_instrument: {}
+
+# ── Data ─────────────────────────────────────────────────────────────
+bar_size: 1 min
+history_bars: 400
+data_dir: data
 log_dir: logs
 log_level: INFO
 log_metaapi_messages: true
 loop_interval_sec: 30.0
-ma_periods:
-- 50
-- 100
-- 200
-macd_fast: 12
-macd_signal: 9
-macd_slow: 26
-macro_halt_minutes_after: 60
-macro_halt_minutes_before: 30
-max_concurrent_positions: 2
-max_daily_drawdown_pct: 0.04
-max_risk_per_trade_pct: 0.015
-metaapi_account_id: ''
-metaapi_token: ''
-min_confidence: 0.62
-min_rr_ratio: 1.8
-mode: live
-per_instrument: {}
-portfolio_heat_cap_pct: 0.06
-rsi_period: 14
+
+# ── Grid strategy (Teeple 2025) ──────────────────────────────────────
+grid_candidates_indices:
+- 2.0
+- 5.0
+- 10.0
+- 25.0
+- 50.0
+- 100.0
+- 250.0
+grid_candidates_forex:
+- 0.0010
+- 0.0025
+- 0.0050
+- 0.0100
+- 0.0250
+grid_candidates_crypto:
+- 10.0
+- 50.0
+- 100.0
+- 500.0
+- 1000.0
+- 5000.0
+grid_candidates_commodities:
+- 0.10
+- 0.25
+- 0.50
+- 1.00
+- 5.00
+grid_dead_zone: 0.10
+grid_edge_dead_zone: 0.05
+grid_recalibration_days: 30
+grid_min_significance: 0.05
+range_break_lookback: 5
+atr_period_for_stops: 14
+atr_sl_buffer: 0.25
 signal_cooldown_bars: 30
-signal_logging: true
-tp1_rr: 1.5
+disable_signal_filters: false
+
+# ── Signal acceptance ────────────────────────────────────────────────
+min_rr_ratio: 1.0
 tp1_size_pct: 0.5
-tp2_rr: 3.0
-trade_session_end: '16:00'
+
+# ── Risk ─────────────────────────────────────────────────────────────
+max_risk_per_trade_pct: 0.015
+max_daily_drawdown_pct: 0.04
+max_concurrent_positions: 2
+max_correlation: 0.7
+max_correlated_positions: 1
+disable_risk_filters: false
+
+# ── Sessions / macro ─────────────────────────────────────────────────
 trade_session_start: 09:30
-trailing_stop_after_tp1: true
+trade_session_end: '16:00'
+avoid_first_minutes: 5
+macro_halt_minutes_before: 30
+macro_halt_minutes_after: 60
+
+# ── Kelly sizing ─────────────────────────────────────────────────────
 use_kelly_sizing: true
-vol_regime_halt_pct: 0.95
-vol_regime_high_pct: 0.75
-vol_regime_lookback_days: 60
-vol_regime_reduce_risk_pct: 0.85
-volume_ma_period: 20
+kelly_fraction: 0.5
+kelly_cap_pct: 0.02
+kelly_lookback_trades: 50
+portfolio_heat_cap_pct: 0.06
+
+# ── Trailing stop ────────────────────────────────────────────────────
+trailing_stop_after_tp1: true
+
+# ── Signal logging ───────────────────────────────────────────────────
+signal_logging: true
+
+# ── Backtest cost model ──────────────────────────────────────────────
+backtest_commission_per_lot: 0.0
+backtest_slippage_pts: 1.0
+backtest_spread_pts: 0.0

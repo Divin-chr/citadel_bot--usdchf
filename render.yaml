@@ -1,7 +1,27 @@
 services:
-  - type: web
+  # Trading bot — handles MetaApi streaming, signal generation, order execution.
+  # Exposes the Flask control API on CITADEL_CONTROL_PORT (default 8765).
+  - type: worker
     name: citadel-bot
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python -m citadel_bot.main"
+    envVars:
+      - key: CITADEL_RUN_DASHBOARD
+        value: "false"
+      - key: CITADEL_CONTROL_PORT
+        value: "8765"
+
+  # Dashboard — separate Streamlit service so a UI hang can't take the bot down.
+  # Talks to the bot via CITADEL_CONTROL_API_URL (point at the bot service)
+  # and Postgres directly (DATABASE_URL).
+  - type: web
+    name: citadel-dashboard
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "streamlit run citadel_bot/dashboard.py --server.address=0.0.0.0 --server.port=$PORT --server.headless=true"
+    envVars:
+      - key: CITADEL_CONTROL_API_URL
+        sync: false  # set in the Render dashboard to the bot service's internal URL

@@ -327,6 +327,70 @@ class DatabaseManager:
             ON terminal_position_prices(metaapi_account_id);
         """)
 
+        # ── Grid strategy tables (Teeple 2025) ───────────────────────
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS grid_calibration (
+                calibration_id SERIAL PRIMARY KEY,
+                instrument_id INTEGER NOT NULL REFERENCES instruments(instrument_id),
+                run_timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                candidates DOUBLE PRECISION[] NOT NULL,
+                cov_mod_by_candidate DOUBLE PRECISION[] NOT NULL,
+                pvalue_by_candidate DOUBLE PRECISION[] NOT NULL,
+                epsilon DOUBLE PRECISION NOT NULL,
+                cov_mod DOUBLE PRECISION NOT NULL,
+                p_value DOUBLE PRECISION NOT NULL,
+                is_significant BOOLEAN NOT NULL,
+                n_bars INTEGER NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_grid_calibration_instrument
+                ON grid_calibration(instrument_id);
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_grid_calibration_run_timestamp
+                ON grid_calibration(run_timestamp DESC);
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS grid_signal_logs (
+                signal_id BIGSERIAL PRIMARY KEY,
+                timestamp_utc TIMESTAMP WITH TIME ZONE NOT NULL,
+                instrument_id INTEGER NOT NULL REFERENCES instruments(instrument_id),
+                epsilon DOUBLE PRECISION,
+                grid_below DOUBLE PRECISION,
+                grid_above DOUBLE PRECISION,
+                midpoint DOUBLE PRECISION,
+                regime_position DOUBLE PRECISION,
+                cov_mod DOUBLE PRECISION,
+                cov_mod_pvalue DOUBLE PRECISION,
+                signal_emitted BOOLEAN NOT NULL DEFAULT FALSE,
+                signal_mode VARCHAR(20),
+                rejection_gate VARCHAR(50),
+                direction VARCHAR(5),
+                confidence DECIMAL(6,4),
+                entry_price DECIMAL(12,5),
+                stop_loss DECIMAL(12,5),
+                tp1 DECIMAL(12,5),
+                tp2 DECIMAL(12,5),
+                rr_ratio DECIMAL(6,2),
+                atr DECIMAL(12,5),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_grid_signal_logs_timestamp
+                ON grid_signal_logs(timestamp_utc DESC);
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_grid_signal_logs_instrument
+                ON grid_signal_logs(instrument_id);
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_grid_signal_logs_signal_emitted
+                ON grid_signal_logs(signal_emitted);
+        """)
+
     async def _seed_instruments(self, conn):
         """Seed or repair instrument catalog rows even when schema already exists."""
         instruments_exists = await conn.fetchval("""
@@ -719,8 +783,84 @@ class DatabaseManager:
     # BUFFER CALIBRATION OPERATIONS
     # =================================================================================
 
+    # =================================================================================
+    # GRID CALIBRATION (Teeple 2025)
+    # =================================================================================
+
+    async def get_optimal_grid_spacing(self, symbol: str) -> float:
+        """Return the most-recent significant ε for symbol, or 0.0 if none."""
+        instrument_id = await self.get_instrument_id(symbol)
+        if not instrument_id:
+            return 0.0
+        async with self.connection() as conn:
+            row = await conn.fetchrow("""
+                SELECT epsilon
+                FROM grid_calibration
+                WHERE instrument_id = $1 AND is_significant = true
+                ORDER BY run_timestamp DESC
+                LIMIT 1
+            """, instrument_id)
+            return float(row['epsilon']) if row else 0.0
+
+    async def save_grid_calibration(self, data: Dict):
+        async with self.connection() as conn:
+            await conn.execute("""
+                INSERT INTO grid_calibration (
+                    instrument_id, run_timestamp,
+                    candidates, cov_mod_by_candidate, pvalue_by_candidate,
+                    epsilon, cov_mod, p_value, is_significant, n_bars
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            """,
+            data['instrument_id'],
+            data['run_timestamp'],
+            data['candidates'],
+            data['cov_mod_by_candidate'],
+            data['pvalue_by_candidate'],
+            data['epsilon'],
+            data['cov_mod'],
+            data['p_value'],
+            data['is_significant'],
+            data['n_bars'])
+
+    async def insert_grid_signal_log(self, row: Dict):
+        async with self.connection() as conn:
+            await conn.execute("""
+                INSERT INTO grid_signal_logs (
+                    timestamp_utc, instrument_id,
+                    epsilon, grid_below, grid_above, midpoint, regime_position,
+                    cov_mod, cov_mod_pvalue,
+                    signal_emitted, signal_mode, rejection_gate,
+                    direction, confidence,
+                    entry_price, stop_loss, tp1, tp2, rr_ratio, atr
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+            """,
+            row['timestamp_utc'],
+            row['instrument_id'],
+            row.get('epsilon'),
+            row.get('grid_below'),
+            row.get('grid_above'),
+            row.get('midpoint'),
+            row.get('regime_position'),
+            row.get('cov_mod'),
+            row.get('cov_mod_pvalue'),
+            bool(row.get('signal_emitted', False)),
+            row.get('signal_mode') or None,
+            row.get('rejection_gate') or None,
+            row.get('direction') or None,
+            row.get('confidence'),
+            row.get('entry_price'),
+            row.get('stop_loss'),
+            row.get('tp1'),
+            row.get('tp2'),
+            row.get('rr_ratio'),
+            row.get('atr'))
+
+    # =================================================================================
+    # LEGACY BUFFER CALIBRATION — table retained for history; no longer written.
+    # =================================================================================
+
     async def get_optimal_buffer_delay(self, symbol: str) -> int:
-        """Get optimal buffer delay for symbol"""
+        """Deprecated: legacy buffer-delay strategy. Kept for backwards compat."""
         instrument_id = await self.get_instrument_id(symbol)
         if not instrument_id:
             return 12  # Default fallback

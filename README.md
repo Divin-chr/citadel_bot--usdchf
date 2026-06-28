@@ -1,99 +1,83 @@
 # Citadel Quant Bot
 
-**Indices trading bot for MetaTrader 5**
-US30 (MYM) · US500 (MES) · NDAQ (MNQ) | Paper → Live
+**Multi-instrument trading bot connecting to MetaTrader 5 via the MetaApi cloud SDK.**
+Indices · Forex · Commodities · Crypto | Paper → Live
 
 ---
 
-## Architecture
+## Strategy
+
+Implements the **Teeple (2025) coarse-Bayesian support/resistance grid model** (SSRN 3667920). Limited-attention traders discretise the price space into an equally-spaced grid with spacing ε; prices behave as a supermartingale in the upper half of each `[iε, (i+1)ε]` regime and a submartingale in the lower half, generating the empirical "bounce" signature of S/R.
 
 ```
-Real-time MT5 feed
+MetaApi streaming feed
         ↓
-  Adaptive Buffer  ← walk-forward calibration finds optimal delay (8–40 min)
+GridCalibrator    ← Donaldson-Kim Cov^mod test + 500-shuffle permutation test
+                    auto-detects ε per instrument; recalibrates every 30 days
         ↓
-Technical Analyzer (delayed data)
-  · Trend: daily / weekly / monthly
-  · MAs: 50 / 100 / 200
-  · RSI, MACD, Bollinger Bands, ATR
-  · Support / Resistance clustering
-  · Fibonacci retracement levels
-  · Pattern detection (H&S, flags, triangles, etc.)
+GridSignalGenerator
+  · Mean-reversion: regime_position toward 0.5 (midpoint) → trade away from edge
+  · Range-break:    bar crosses grid line → trade in direction of breakout
+  · Dead zones at midpoint (no edge) and at grid edges (breakout brewing)
         ↓
-Prediction Engine  → directional prediction + confidence
+Risk Manager       → session, macro calendar, drawdown, Kelly + class-prior shrinkage
         ↓
-Delta Comparator   ← compares prediction to real-time reality
-        ↓
-Signal Generator   → entry / SL / TP1 / TP2 + R:R filter
-        ↓
-Risk Manager       → session, macro calendar, drawdown, sizing
-        ↓
-Execution Engine   → MT5 order execution (split TP legs + shared SL)
+Execution Engine   → MetaApi bracket orders (TP1 + TP2 split, shared SL)
+                     SL on opposite grid line ± 0.25·ATR pad
+                     TP1 = midpoint, TP2 = next grid line
 ```
 
 ---
 
 ## Setup
 
-### 1. Install MetaTrader 5 terminal
+### 1. Set up a MetaApi account
 
-Download from your broker or MetaTrader website and log into your trading account.
-
-Enable algorithmic trading in MT5:
-- Tools → Options → Expert Advisors
-  - Allow algorithmic trading ✓
+Use MetaApi (https://metaapi.cloud) — the bot does NOT use the local `MetaTrader5` Python package. Provision a MetaApi account linked to your broker's MT5 server, then grab the account ID and an API token.
 
 ### 2. Install Python dependencies
 
 ```bash
-cd citadel_bot
 pip install -r requirements.txt
 ```
 
-Python 3.10+ required.
+Python 3.10+ required. `requirements.txt` is UTF-16 — pip handles it, but don't edit it as plain ASCII.
 
-### 3. Configure
+### 3. Configure secrets in `.env`
 
-Edit `config.yaml`:
-
-```yaml
-mode: "paper"        # Start here — change to "live" later
-mt5_login: 12345678
-mt5_password: "your_password"
-mt5_server: "YourBroker-Server"
+```
+CITADEL_METAAPI_TOKEN=your_jwt
+CITADEL_METAAPI_ACCOUNT_ID=your_account_id
+CITADEL_MODE=paper           # or "live"
+DATABASE_URL=postgresql://…  # optional — bot falls back to CSV/JSON if missing
+CITADEL_DASHBOARD_USER=admin
+CITADEL_DASHBOARD_PASS=change_me_now
 ```
 
-All other settings have sensible defaults but read through them.
+### 4. Configure instruments in `config.yaml`
 
-### 4. Instrument mapping
+Two `config.yaml` files exist (repo root, and `citadel_bot/`). Edit whichever you launch from — `BotConfig.from_file("config.yaml")` resolves relative to CWD.
 
-| Display name | MT5 symbol (example) | Broker |
-|---|---|---|
-| US30 / Dow | US30 | broker-defined |
-| SPX500 / S&P | US500 | broker-defined |
-| NAS100 / Nasdaq | USTEC | broker-defined |
+```yaml
+instruments: [US30, US500, NDAQ, USOUSD, BTCUSD, ETHUSD]
+```
 
-Micro contracts are used intentionally — they allow paper→live transition
-with minimal capital at risk and identical signal logic.
+Symbols are mapped to MetaApi broker symbols and asset-class metadata via `citadel_bot/utils/instrument_catalog.py`. Add new tradable symbols there.
 
 ---
 
 ## Running the bot
 
-```bash
-# Paper mode (safe — no real money)
-python main.py
-
-# After 60+ paper sessions, switch to live in config.yaml then:
-python main.py
+```powershell
+# Bot + dashboard (single entry point — also the Render start command)
+python -m citadel_bot.main
 ```
 
 The bot will:
-1. Connect to MT5 on startup
-2. Run buffer calibration (~60 seconds)
-3. Load 400 bars of history per instrument
-4. Subscribe to real-time 1-min bars
-5. Loop every 30 seconds, checking all three instruments
+1. Connect to MetaApi on startup
+2. Run `GridCalibrator` per instrument (sweeps ε candidates, logs `"Grid spacing ε=X for SYM (p=Y)"`)
+3. Subscribe to streaming bars
+4. Loop every `loop_interval_sec` (≈30s), evaluating each instrument against its grid
 
 ---
 
@@ -129,15 +113,15 @@ See [DASHBOARD_GUIDE.md](DASHBOARD_GUIDE.md) for full documentation and troubles
 
 ## Backtesting
 
-```bash
+```powershell
 # With your own OHLCV CSV (columns: datetime, open, high, low, close, volume)
-python backtest.py --sym US500 --csv my_data.csv
+python citadel_bot/backtest.py --sym US500 --csv my_data.csv
 
-# Demo with synthetic data
-python backtest.py --sym US500 --days 90
+# Synthetic grid-pull series (validates the calibrator end-to-end)
+python citadel_bot/backtest.py --sym US500 --days 90
 ```
 
-Outputs a report card and saves trade log to `data/backtest_{sym}.csv`.
+The backtester calibrates ε on the first 30% of the series, then walk-forward replays the remaining 70% bar-by-bar through `GridSignalGenerator`. The cost model (spread + slippage + commission) is preserved from the prior strategy. The report card includes ε, Cov^mod, p-value, mean-revert vs range-break trade counts, win rate, profit factor, Sharpe, and max drawdown.
 
 ---
 
@@ -246,14 +230,17 @@ if (-not $summary) {
 
 | Parameter | Default | Effect |
 |---|---|---|
-| `buffer_min_delay_min` | 4 | Minimum buffer delay tested |
-| `buffer_max_delay_min` | 40 | Maximum buffer delay tested |
-| `min_confidence` | 0.62 | Raise to trade less, lower to trade more |
-| `min_rr_ratio` | 1.8 | Minimum R:R to accept a trade |
-| `delta_threshold` | 0.55 | How strongly prediction must match reality |
-| `atr_sl_multiplier` | 1.8 | Wider = safer but smaller position |
-| `max_risk_per_trade_pct` | 0.015 | 1.5% of account at risk per trade |
-| `max_daily_drawdown_pct` | 0.04 | Bot halts at 4% daily loss |
+| `grid_candidates_indices` / `_forex` / `_crypto` / `_commodities` | per asset class | ε values the calibrator tests. Add more for finer resolution. |
+| `grid_min_significance` | 0.05 | Max p-value for a candidate ε to be accepted. Tighten to reject weak grids. |
+| `grid_dead_zone` | 0.10 | Fractional dead zone around the midpoint (no mean-revert trades there). |
+| `grid_edge_dead_zone` | 0.05 | Fractional dead zone near grid lines (avoids sniping with imminent breakouts). |
+| `grid_recalibration_days` | 30 | Cadence to re-run `GridCalibrator`. Shorter = more responsive to regime change. |
+| `range_break_lookback` | 5 | Bars used to confirm a clean grid-line cross before emitting a range-break signal. |
+| `atr_period_for_stops` | 14 | Wilder ATR period used purely for SL padding (not signal generation). |
+| `atr_sl_buffer` | 0.25 | ATR multiplier added to the opposite grid line for SL placement. |
+| `min_rr_ratio` | 1.8 | Minimum R:R to accept a trade. |
+| `max_risk_per_trade_pct` | 0.015 | 1.5% of account at risk per trade. |
+| `max_daily_drawdown_pct` | 0.04 | Bot halts at this daily loss. |
 
 ---
 
@@ -261,33 +248,30 @@ if (-not $summary) {
 
 ```
 citadel_bot/
-├── main.py               ← entry point / orchestrator
-├── config.py             ← configuration dataclass
+├── main.py               ← entry point / orchestrator (CitadelBot + BotSupervisor + Flask control API)
+├── config/config.py      ← configuration dataclass + .env overrides
 ├── config.yaml           ← edit this to change settings
-├── data_pipeline.py      ← MT5 real-time + historical feed
-├── buffer_engine.py      ← adaptive delay buffer + calibration
-├── technical_analysis.py ← full TA suite on delayed data
-├── prediction_engine.py  ← prediction + delta comparator
-├── signal_generator.py   ← trade signal assembly + R:R filter
-├── risk_manager.py       ← position sizing, session, macro halt
-├── execution_engine.py   ← MT5 order placement + ledger tracking
-├── backtest.py           ← offline backtester
-├── logger.py             ← structured logging
-├── requirements.txt
-├── logs/                 ← daily log files (auto-created)
-└── data/                 ← backtests + live trade_ledger.csv
+├── data_pipeline.py      ← MetaApi real-time + historical feed
+├── grid_engine.py        ← GridCalibrator (ε auto-detect) + GridSignalGenerator (mean-revert + range-break)
+├── signal_logger.py      ← per-tick signal context → CSV + grid_signal_logs table
+├── risk_manager.py       ← session, macro halt, Kelly + class-prior shrinkage, correlation
+├── execution_engine.py   ← MetaApi bracket orders + trade ledger
+├── backtest.py           ← offline backtester (calibrate → walk-forward replay)
+├── dashboard.py          ← Streamlit web dashboard
+├── database/             ← Postgres schema + asyncpg pool manager
+└── utils/                ← instrument_catalog + logger
+data/                     ← economic_calendar.csv, trade_ledger.csv, signal_log.csv, market_data/ CSVs
 ```
 
 ---
 
-## Smoothest path to profitability
+## Operational tips
 
-1. **Paper trade minimum 60 sessions** — don't skip this, no exceptions
-2. **Re-calibrate the buffer monthly** — market microstructure changes
-3. **Trade first + last hour only** (09:30–10:30, 15:00–16:00 ET) — highest volume, sharpest signals
-4. **Never trade FOMC/NFP** — the bot halts automatically, but check the calendar yourself too
-5. **Start live with 1 contract** — signal logic is identical, capital at risk is minimal
-6. **Review backtest_*.csv weekly** — look for confidence score vs actual outcome drift
+1. **Run in paper mode first** until calibration stabilises and you've seen a full range of grid signals across instruments.
+2. **The model only fits some instruments.** If `grid_min_significance` rejects every candidate ε for a symbol, the bot won't trade it until the next recalibration window. This is intentional — the paper's premise (coarse Bayesian attention to round numbers) doesn't hold universally.
+3. **Recalibrate more often during regime changes** — drop `grid_recalibration_days` if volatility regime shifts make the prior ε grid stale.
+4. **The macro halt and FOMC/NFP gating are unchanged.** `data/economic_calendar.csv` drives them.
+5. **Reconcile `data/trade_ledger.csv` against your broker statements** — the ledger is the source of truth regardless of whether Postgres is reachable.
 
 ---
 
